@@ -1,11 +1,10 @@
 #pragma once
-#if 0
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 #ifdef EZP_DEBUG
-
     #include <stdio.h>
     #include <stdlib.h>
 
@@ -32,6 +31,14 @@ extern "C" {
 	} } while(0)
 
 
+    #define EZP_VLOG_INT(expn) EZP_VLOG( #expn ": %d\n", (int) expn)
+    #define EZP_LOG_INT(expn) EZP_LOG( #expn ": %d\n", (int) expn)
+    #define EZP_ELOG_INT(expn) EZP_ELOG( #expn ": %d\n", (int) expn)
+    #define EZP_WLOG_INT(expn) EZP_WLOG( #expn ": %d\n", (int) expn)
+
+
+    //void print_uint8_t(const char *, uint8_t);
+
 #else
 
 #define EZP_VLOG(...)
@@ -39,13 +46,28 @@ extern "C" {
 #define EZP_WLOG(...)
 #define EZP_ELOG(...)
 
+#define EZP_VLOG_INT(expn)
+#define EZP_LOG_INT(expn)
+#define EZP_ELOG_INT(expn)
+#define EZP_WLOG_INT(expn)
+
+
+
 #define EZP_ASSERT(cond) ((void)sizeof(cond))
+#define print_uint8_t(a,b)
+
 
 
 
 #endif
+
+
+#define EZP_CHECK_OK(expn) do{ \
+	EZP_RESULT res = (expn); \
+	EZP_ASSERT(res == EZP_OK); \
+} while(0)
+
 
 #if defined(__cplusplus)
 }
-#endif
 #endif

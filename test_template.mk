@@ -1,3 +1,5 @@
+.DELETE_ON_ERROR:
+
 # Thanks to Job Vranish (https://spin.atomicobject.com/2016/08/26/makefile-c-projects/)
 # TARGET_EXEC :=
 # TEST_NAME := ezp_msg_buffer_test
@@ -17,12 +19,15 @@ TEST_DIR := ./tests/src
 
 TEST_EXEC := $(BUILD_DIR)/$(TEST_NAME)
 
-CFLAGS := -Wall -g
-CXXFLAGS := -Wall -g
+CFLAGS := -Wall -g -fdiagnostics-color=always
+CXXFLAGS := -Wall -g -fdiagnostics-color=always
 CPPFLAGS := '-DEZP_MSG_TABLE="$(MSG_TABLE)"'
+
+
 
 # Find all the C and C++ files we want to compile
 SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
+SRCS += $(EXTRA_SRCS:%=./tests/%)
 TEST_SRCS := $(TEST_DIR)/$(TEST_NAME).cpp
 CATCH_SRC := $(TEST_DIR)/catch_main.cpp
 

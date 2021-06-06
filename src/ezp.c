@@ -1,3 +1,5 @@
+#if 0
+
 #include "ezp.h"
 #include "ezp_msg_buffer.h"
 // #include "ezp_byte_buffer.h"
@@ -6,7 +8,7 @@
 #define SIZEOF_CSUM 2
 #define SIZEOF_TYPEID 1
 #define SIZEOF_SEQNUM 1
-#if 0
+#if 1
 // ISSUES:
 // 	- Non-blocking UART read vs. separate UART interrupt
 //	- Retry timer.
@@ -100,35 +102,35 @@ void printBuff(const uint8_t *buff, int len){
 
 // msgsender ----------------------------------------------------------------------------
 
-typedef struct{
-	csum_calc_t csum;
-} msgSender_t;
+// typedef struct{
+// 	csum_calc_t csum;
+// } msgSender_t;
 
 
-void initMsgSender(msgSender_t *sender){
-	csumCalculator_init(&sender->csum);
-}
+// void initMsgSender(msgSender_t *sender){
+// 	csumCalculator_init(&sender->csum);
+// }
 
-EZP_RESULT send_uint8_t(msgSender_t *sender, uint8_t data){
-	if(ezp_platform_putc(data) == EZP_OK){
-		csumCalculator_update(&sender->csum, data);
-		return EZP_OK;
-	}
-	return EZP_EAGAIN;
-}
+// EZP_RESULT send_uint8_t(msgSender_t *sender, uint8_t data){
+// 	if(ezp_platform_putc(data) == EZP_OK){
+// 		csumCalculator_update(&sender->csum, data);
+// 		return EZP_OK;
+// 	}
+// 	return EZP_EAGAIN;
+// }
 
-EZP_RESULT finish_send(msgSender_t *sender){
-	uint16_t csum = csumCalculator_getCsum(&sender->csum);
-	uint8_t low = csum & 0xff;
-	uint8_t high = (csum>>8) & 0xff;
-	if(ezp_platform_putc( low ) != EZP_OK){
-		return EZP_EAGAIN;
-	}
-	if(ezp_platform_putc( high ) != EZP_OK){
-		return EZP_EAGAIN;
-	}
-	return EZP_OK;
-}
+// EZP_RESULT finish_send(msgSender_t *sender){
+// 	uint16_t csum = csumCalculator_getCsum(&sender->csum);
+// 	uint8_t low = csum & 0xff;
+// 	uint8_t high = (csum>>8) & 0xff;
+// 	if(ezp_platform_putc( low ) != EZP_OK){
+// 		return EZP_EAGAIN;
+// 	}
+// 	if(ezp_platform_putc( high ) != EZP_OK){
+// 		return EZP_EAGAIN;
+// 	}
+// 	return EZP_OK;
+// }
 
 
 // msgreader ----------------------------------------------------------------------------
@@ -454,7 +456,7 @@ void ezp_recvAndPrint(){
 // }
 
 
-static EZP_RESULT Msgr_sendAckOf(ezp_msgr_t *msgr, ezp_msg_t *msg){
+static EZP_RESULT Msgr_sendAckOf(ezp_master_t *msgr, ezp_msg_t *msg){
 	EZP_ASSERT(msg != NULL);
 	EZP_ASSERT(msg->typeID != ezp_msgID_ack);
 
@@ -475,7 +477,7 @@ static EZP_RESULT Msgr_sendAckOf(ezp_msgr_t *msgr, ezp_msg_t *msg){
 }
 
 
-static void Msgr_considerSend(ezp_msgr_t *msgr){
+static void Msgr_considerSend(ezp_master_t *msgr){
 	if(  msgRingbuff_isEmpty(& msgr->msgSendQueue) ){
 		return;
 	}
@@ -499,7 +501,7 @@ static void Msgr_considerSend(ezp_msgr_t *msgr){
 }
 
 
-static void Msgr_handleAck(ezp_msgr_t *msgr, ezp_msg_t *ack){
+static void Msgr_handleAck(ezp_master_t *msgr, ezp_msg_t *ack){
 	EZP_LOG("got ack\n");
 
 	if(ack->_seqNum == msgr->lastSeqNumAckRecvd){
@@ -544,7 +546,7 @@ static void Msgr_handleAck(ezp_msgr_t *msgr, ezp_msg_t *ack){
 // static uint8_t lastSeqNumFullyRecvd = 0; // TODO
 // static int fullyRecvdAtLeastOneMsg = 0;
 
-static void Msgr_handleNonAck(ezp_msgr_t *msgr, ezp_msg_t *msg){
+static void Msgr_handleNonAck(ezp_master_t *msgr, ezp_msg_t *msg){
 
 	if(msgr->lastSeqNumFullyRecvd == msg->_seqNum )
 	{
@@ -568,7 +570,7 @@ static void Msgr_handleNonAck(ezp_msgr_t *msgr, ezp_msg_t *msg){
 	}
 }
 
-static void Msgr_handleAnyRecvdMsgs(ezp_msgr_t *msgr){
+static void Msgr_handleAnyRecvdMsgs(ezp_master_t *msgr){
 	ezp_msg_t recvdMsg;
 	EZP_RESULT recvRes = Msgr_actualRecv( msgr, &recvdMsg );
 	if(recvRes == EZP_OK){
@@ -585,7 +587,7 @@ static void Msgr_handleAnyRecvdMsgs(ezp_msgr_t *msgr){
 }
 
 
-EZP_RESULT Msgr_Process(ezp_msgr_t *msgr){
+EZP_RESULT Msgr_Process(ezp_master_t *msgr){
 	EZP_VLOG(">> %s\n", __func__);
 	EZP_ASSERT(msgr->initted);
 
@@ -656,7 +658,7 @@ static void _ezp_buffer_reset()
 /* COMMUNICATION INTERFACE                                                    */
 /******************************************************************************/
 
-EZP_RESULT Msgr_init(ezp_msgr_t *msgr){
+EZP_RESULT Msgr_init(ezp_master_t *msgr){
 	// EZP_ASSERT(!initted);
 
 	// msgr->initted = EZP_TRUE;
@@ -701,7 +703,7 @@ EZP_RESULT checkChecksum(uint8_t *buff, int size){
 	}
 }
 
-EZP_RESULT Msgr_tryReadMsg(ezp_msgr_t *msgr, ezp_msg_t *msg){
+EZP_RESULT Msgr_tryReadMsg(ezp_master_t *msgr, ezp_msg_t *msg){
 	uint8_t buff[32]; // TODO
 	int buffIndex = 0;
 
@@ -740,7 +742,7 @@ EZP_RESULT Msgr_tryReadMsg(ezp_msgr_t *msgr, ezp_msg_t *msg){
 }
 
 
-static EZP_RESULT Msgr_actualRecv(ezp_msgr_t *msgr, ezp_msg_t* msg)
+static EZP_RESULT Msgr_actualRecv(ezp_master_t *msgr, ezp_msg_t* msg)
 {
 	if(msg == 0) return EZP_EARG;
 
@@ -771,7 +773,7 @@ static EZP_RESULT Msgr_actualRecv(ezp_msgr_t *msgr, ezp_msg_t* msg)
 }
 
 
-EZP_RESULT Msgr_recv(ezp_msgr_t *msgr, ezp_msg_t *msg){
+EZP_RESULT Msgr_recv(ezp_master_t *msgr, ezp_msg_t *msg){
 	EZP_ASSERT(msgr != NULL);
 	EZP_ASSERT(msg != NULL);
 
@@ -780,7 +782,7 @@ EZP_RESULT Msgr_recv(ezp_msgr_t *msgr, ezp_msg_t *msg){
 
 
 
-EZP_RESULT Msgr_send(ezp_msgr_t *msgr, ezp_msg_t *msg){
+EZP_RESULT Msgr_send(ezp_master_t *msgr, ezp_msg_t *msg){
 	EZP_ASSERT(msgr != NULL);
 	EZP_ASSERT(msg != NULL);
 
@@ -1065,4 +1067,5 @@ void runTests(){
 
 	printf("--------------------------------------\n");
 }
+#endif
 #endif

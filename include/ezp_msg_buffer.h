@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ezp_types.h"
+#include "ezp_msg.h"
 
 #ifndef EZP_MSG_BUFF_SIZE
 #define EZP_MSG_BUFF_SIZE 4

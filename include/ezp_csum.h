@@ -2,6 +2,9 @@
 
 #include <stdint.h>
 
+
+#define EZP_SIZEOF_CSUM 2
+
 typedef struct
 {
 	uint8_t m_simple;
