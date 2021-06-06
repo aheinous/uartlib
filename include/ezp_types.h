@@ -63,7 +63,7 @@ static inline const char * ezp_res_str(EZP_RESULT res){
 //	https://en.wikipedia.org/wiki/X_Macro
 
 
-
+#if 0
 #ifndef EZP_MSG_TABLE
 #define EZP_MSG_TABLE \
 	START_MSG(foo) \
@@ -86,22 +86,22 @@ static inline const char * ezp_res_str(EZP_RESULT res){
 	\
 	START_MSG(volume) \
 	FIELD(uint8_t, value) \
-	END_MSG(volume) 
+	END_MSG(volume)
 #endif
 
 
-
+#endif
 // Enum definition -------------------------------------------------
 
 #define START_MSG(msgName) 	ezp_msgID_ ## msgName,
-#define FIELD(type, fieldName) 	
-#define END_MSG(msgName) 
+#define FIELD(type, fieldName)
+#define END_MSG(msgName)
 
 typedef enum {
 
 	ezp_msgID_ack, // ACK special case
 
-	EZP_MSG_TABLE
+	#include EZP_MSG_TABLE
 } EZP_MSG_TYPE_ID;
 
 #undef START_MSG
@@ -114,7 +114,7 @@ typedef enum {
 #define FIELD(type, fieldName) 		type fieldName;
 #define END_MSG(msgName) 	} ezp_ ## msgName ## _t;
 
-EZP_MSG_TABLE
+#include EZP_MSG_TABLE
 
 
 #undef START_MSG
@@ -124,16 +124,16 @@ EZP_MSG_TABLE
 
 // Big Conglomerate Struct Union definition -----------------------
 
-#define START_MSG(msgName) ezp_ ## msgName ## _t msgName;	
-#define FIELD(type, fieldName) 	
-#define END_MSG(msgName) 
+#define START_MSG(msgName) ezp_ ## msgName ## _t msgName;
+#define FIELD(type, fieldName)
+#define END_MSG(msgName)
 
 typedef struct{
 	// EZP_MSG_TYPE_ID typeID;// TODO switch back
-	uint8_t typeID; 
+	uint8_t typeID;
 	uint8_t _seqNum; // for internal use only
 	union{
-		EZP_MSG_TABLE
+		#include EZP_MSG_TABLE
 	};
 } ezp_msg_t;
 

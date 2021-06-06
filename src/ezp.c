@@ -6,11 +6,11 @@
 #define SIZEOF_CSUM 2
 #define SIZEOF_TYPEID 1
 #define SIZEOF_SEQNUM 1
-
+#if 0
 // ISSUES:
 // 	- Non-blocking UART read vs. separate UART interrupt
 //	- Retry timer.
-// 
+//
 
 
 // TODO static all static-able functions
@@ -62,14 +62,14 @@ void printBuff(const uint8_t *buff, int len){
 
 // TODO put into struct
 
-#define NONE (-10) 	// Use -10 instead of -1 to stop NONE from getting 
+#define NONE (-10) 	// Use -10 instead of -1 to stop NONE from getting
 					// incremented into the valid seqNum range of 0->255
 
 // static int initted = 0;
 // static int16_t lastSeqNumInSendBuffer = 0;
 // static int16_t lastSeqNumAckRecvd = NONE;
 
-// static int16_t lastSeqNumFullyRecvd = NONE; 
+// static int16_t lastSeqNumFullyRecvd = NONE;
 // // static int fullyRecvdAtLeastOneMsg = 0;
 
 // static uint16_t timeTillRetry = 0;
@@ -83,7 +83,7 @@ void printBuff(const uint8_t *buff, int len){
 	// int16_t lastSeqNumInSendBuffer = 0;
 	// int16_t lastSeqNumAckRecvd = NONE;
 
-	// int16_t lastSeqNumFullyRecvd = NONE; 
+	// int16_t lastSeqNumFullyRecvd = NONE;
 
 	// uint16_t timeTillRetry = 0;
 
@@ -140,7 +140,7 @@ typedef struct{
 } msgReader_t;
 
 void initMsgReader(msgReader_t *reader, uint8_t *buff, int size){
-	EZP_VLOG("initMsgReader %p:", reader); 
+	EZP_VLOG("initMsgReader %p:", reader);
 	printBuff(buff, size);
 	reader->buff = buff;
 	reader->index = 0;
@@ -178,14 +178,14 @@ EZP_RESULT deserialize(ezp_msg_t *msg, msgReader_t *reader);
 
 
 #define START_MSG(msgName) 			case (ezp_msgID_ ## msgName): *size = 0
-#define FIELD(type, fieldName) 		+ sizeof(type) 
+#define FIELD(type, fieldName) 		+ sizeof(type)
 #define END_MSG(msgName) 			; break;
 
 EZP_RESULT sizeOfMsgPayload(EZP_MSG_TYPE_ID typeID, int *size){
 	EZP_ASSERT(size != NULL);
 
 	switch(typeID){
-		EZP_MSG_TABLE
+		#include EZP_MSG_TABLE
 
 		case ezp_msgID_ack:
 			*size = 0;
@@ -221,23 +221,23 @@ EZP_RESULT sizeOfWholeMsg(EZP_MSG_TYPE_ID typeID, int *size){
 
 
 EZP_RESULT serialize(ezp_msg_t *msg, msgSender_t* sender){
-	
+
 
 	// msgSender_t sender;
 
 	// initMsgSender(&sender);
 
 	if(send_uint8_t(sender, msg->typeID) != EZP_OK){
-		return EZP_EAGAIN;	
-	} 
+		return EZP_EAGAIN;
+	}
 	if(send_uint8_t(sender, msg->_seqNum) != EZP_OK){
-		return EZP_EAGAIN;	
-	} 
+		return EZP_EAGAIN;
+	}
 
 
 	switch(msg->typeID){
 
-		EZP_MSG_TABLE
+		#include EZP_MSG_TABLE
 
 		case ezp_msgID_ack:
 			// no payload
@@ -270,8 +270,8 @@ EZP_RESULT serialize(ezp_msg_t *msg, msgSender_t* sender){
 // Deserialize Funtion ---------------------------------------------
 
 #define START_MSG(msgName) 		case (ezp_msgID_ ## msgName):{ \
-									ezp_ ## msgName ## _t *innerMsg = &(msg->msgName); 
-#define FIELD(type, fieldName) 		if(read_ ## type( reader, &(innerMsg->fieldName) ) != EZP_OK) { return EZP_EAGAIN; } 
+									ezp_ ## msgName ## _t *innerMsg = &(msg->msgName);
+#define FIELD(type, fieldName) 		if(read_ ## type( reader, &(innerMsg->fieldName) ) != EZP_OK) { return EZP_EAGAIN; }
 #define END_MSG(msgName) 		} break;
 
 EZP_RESULT deserialize(ezp_msg_t *msg, msgReader_t *reader){
@@ -279,14 +279,14 @@ EZP_RESULT deserialize(ezp_msg_t *msg, msgReader_t *reader){
 
 	if(read_uint8_t(reader, &(msg->typeID)) != EZP_OK){
 		return EZP_EAGAIN;
-	}	
+	}
 	if(read_uint8_t(reader, &(msg->_seqNum)) != EZP_OK){
 		return EZP_EAGAIN;
 	}
 
 	switch(msg->typeID){
 
-		EZP_MSG_TABLE
+		#include EZP_MSG_TABLE
 
 		case ezp_msgID_ack:
 			// no payload
@@ -316,7 +316,7 @@ EZP_RESULT deserialize(ezp_msg_t *msg, msgReader_t *reader){
 void ezp_printMsg(ezp_msg_t *msg){
 	switch(msg->typeID){
 
-		EZP_MSG_TABLE
+		#include EZP_MSG_TABLE
 
 		case (ezp_msgID_ack):
 			EZP_LOG("An Ack msg:\n");
@@ -469,7 +469,7 @@ static EZP_RESULT Msgr_sendAckOf(ezp_msgr_t *msgr, ezp_msg_t *msg){
 		if(res==EZP_OK){
 			return EZP_OK;
 		}
-		EZP_WLOG("Msgr_sendAckOf(): Msgr_actualSend() gave %s, retrying ...\n", 
+		EZP_WLOG("Msgr_sendAckOf(): Msgr_actualSend() gave %s, retrying ...\n",
 					ezp_res_str(res));
 	}
 }
@@ -489,7 +489,7 @@ static void Msgr_considerSend(ezp_msgr_t *msgr){
 		--(msgr->timeTillRetry);
 		return;
 	}
-		
+
 	Msgr_actualSend(msgr, msgToSend);
 	msgr->timeTillRetry = RETRY_INTERVAL;
 
@@ -549,7 +549,7 @@ static void Msgr_handleNonAck(ezp_msgr_t *msgr, ezp_msg_t *msg){
 	if(msgr->lastSeqNumFullyRecvd == msg->_seqNum )
 	{
 		// drop duplicate
-		EZP_LOG("Dropping duplicate message, but resending ACK. SeqNum: %d\n", 
+		EZP_LOG("Dropping duplicate message, but resending ACK. SeqNum: %d\n",
 				 msg->_seqNum);
 		Msgr_sendAckOf(msgr, msg);
 		return;
@@ -576,7 +576,7 @@ static void Msgr_handleAnyRecvdMsgs(ezp_msgr_t *msgr){
 		if(recvdMsg.typeID == ezp_msgID_ack){
 			Msgr_handleAck(msgr, &recvdMsg);
 		}else{
-			Msgr_handleNonAck(msgr, &recvdMsg);		
+			Msgr_handleNonAck(msgr, &recvdMsg);
 		}
 
 	}else{
@@ -662,7 +662,7 @@ EZP_RESULT Msgr_init(ezp_msgr_t *msgr){
 	// msgr->initted = EZP_TRUE;
 	msgr->lastSeqNumInSendBuffer = 0;
 	msgr->lastSeqNumAckRecvd = NONE;
-	msgr->lastSeqNumFullyRecvd = NONE; 
+	msgr->lastSeqNumFullyRecvd = NONE;
 	msgr->timeTillRetry = 0;
 
 	// msgRingbuff_t msgSendQueue;
@@ -1036,7 +1036,7 @@ void sendFooABPartialTest(){
 	printf("--------------------------------------\n");
 	ezp_platform_putc(fooAB_bytes[2]);
 	ezp_recvAndPrint();
-	
+
 
 	printf("--------------------------------------\n");
 	ezp_platform_putc(fooAB_bytes[3]);
@@ -1065,3 +1065,4 @@ void runTests(){
 
 	printf("--------------------------------------\n");
 }
+#endif

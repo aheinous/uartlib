@@ -1,5 +1,5 @@
 #pragma once
-
+#if 0
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -47,4 +47,5 @@ extern "C" {
 
 #if defined(__cplusplus)
 }
+#endif
 #endif

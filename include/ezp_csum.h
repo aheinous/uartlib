@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-typedef struct 
+typedef struct
 {
 	uint8_t m_simple;
 	uint8_t m_extra;

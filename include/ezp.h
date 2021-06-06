@@ -1,5 +1,5 @@
 #pragma once
-
+#if 0
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -24,4 +24,5 @@ EZP_RESULT ezp_process();
 
 #if defined(__cplusplus)
 }
+#endif
 #endif

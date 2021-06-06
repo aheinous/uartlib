@@ -1,62 +1,24 @@
-# Thanks to Job Vranish (https://spin.atomicobject.com/2016/08/26/makefile-c-projects/)
-TARGET_EXEC := final_program
-TEST_EXEC := unittests
-
-CC := gcc
-CXX := g++
-
-BUILD_DIR := ./build
-SRC_DIRS := ./src
-INC_DIRS := ./include
-TEST_DIRS := ./tests
-
-# Find all the C and C++ files we want to compile
-SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
-TEST_SRCS := $(shell find $(TEST_DIRS) -name *.cpp -or -name *.c)
-
-# String substitution for every C/C++ file.
-# As an example, hello.cpp turns into ./build/hello.cpp.o
-OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
-TEST_OBJS := $(TEST_SRCS:%=$(BUILD_DIR)/%.o)
-
-# String substitution (suffix version without %).
-# As an example, ./build/hello.cpp.o turns into ./build/hello.cpp.d
-DEPS := $(OBJS:.o=.d)
-DEPS += $(TEST_OBJS:.o=.d)
-
-# Every folder in ./src will need to be passed to GCC so that it can find header files
-# INC_DIRS := $(shell find $(SRC_DIRS) -type d)
-# Add a prefix to INC_DIRS. So moduleA would become -ImoduleA. GCC understands this -I flag
-INC_FLAGS := $(addprefix -I,$(INC_DIRS))
-
-# The -MMD and -MP flags together generate Makefiles for us!
-# These files will have .d instead of .o as the output.
-CPPFLAGS := $(INC_FLAGS) -MMD -MP
-
-# The final build step.
-$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
-
-$(TEST_EXEC): $(TEST_OBJS)
-	$(CXX) $(TEST_OBJS) -o $@ $(LDFLAGS)
+TEMPLATE := test_template.mk
 
 
-# Build step for C source
-$(BUILD_DIR)/%.c.o: %.c
-	mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+ALL_TESTS := ezp_msg_buffer_test ezp_byte_buffer_test
+ALL_RUNS := $(ALL_TESTS:%=run-%)
 
-# Build step for C++ source
-$(BUILD_DIR)/%.cpp.o: %.cpp
-	mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+all: $(ALL_TESTS)
+
+run-all: $(ALL_RUNS)
+
+run-%: %
+	./build/$</$<
+
+ezp_msg_buffer_test:
+	TEST_NAME=$@ MSG_TABLE=foobarpingpong.h $(MAKE) -e -f $(TEMPLATE)
 
 
-.PHONY: clean
+ezp_byte_buffer_test:
+	TEST_NAME=$@ MSG_TABLE=foobarpingpong.h $(MAKE) -e -f $(TEMPLATE)
+
+
+
 clean:
-	rm -r $(BUILD_DIR)
-
-# Include the .d makefiles. The - at the front suppresses the errors of missing
-# Makefiles. Initially, all the .d files will be missing, and we don't want those
-# errors to show up.
--include $(DEPS)
+	rm -r ./build/

@@ -9,7 +9,7 @@
 
 #define NONE (-10) 	// Use -10 instead of -1 to stop NONE from getting 
 					// incremented into the valid seqNum range of 0->255
-
+#if 0
 
 typedef struct {
 	ezp_bool_t initted ;
@@ -192,3 +192,5 @@ EZP_RESULT Msgr_Process(ezp_msgr_t *msgr){
 
 	return EZP_OK;
 }
+
+#endif

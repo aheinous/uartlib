@@ -2,6 +2,4 @@
 #include "catch.hpp"
 
 
-TEST_CASE("stuff and things"){
-    REQUIRE(true);
-}
+

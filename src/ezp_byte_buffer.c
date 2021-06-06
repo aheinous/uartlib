@@ -1,13 +1,10 @@
 #include "ezp_byte_buffer.h"
 
-#define INCED(index) (((index)+1) & (self->m_size - 1))
+#define INCED(index) (((index)+1) & (EZP_BYTE_BUFFER_CAPACITY - 1))
+#define WRAPPED(index) ((index) & (EZP_BYTE_BUFFER_CAPACITY - 1))
 
 
-
-
-void byteBuff_init(byteBuff_t *self, uint8_t *m_data, uint8_t size){
-    self->m_data = m_data;
-    self->m_size = size;
+void byteBuff_init(byteBuff_t *self){
 	self->m_writeIndex = 0;
 	self->m_readIndex = 0;
 }
@@ -25,6 +22,10 @@ ezp_bool_t byteBuff_isEmpty(byteBuff_t *self){
 }
 
 
+uint8_t byteBuff_size(byteBuff_t *self){
+	return (self->m_writeIndex - self->m_readIndex) & (EZP_BYTE_BUFFER_CAPACITY - 1);
+}
+
 EZP_RESULT byteBuff_push(byteBuff_t *self, uint8_t byte){
 	// EZP_VLOG(">> %s\n", __func__);
 	// EZP_ASSERT(msg != NULL); // ??
@@ -37,29 +38,25 @@ EZP_RESULT byteBuff_push(byteBuff_t *self, uint8_t byte){
 	return EZP_OK;
 }
 
-EZP_RESULT byteBuff_peek(byteBuff_t *self, uint8_t *pbyte){
+EZP_RESULT byteBuff_peek(byteBuff_t *self,  uint8_t idx, uint8_t *pbyte){
 	// EZP_VLOG(">> %s\n", __func__);
 	// EZP_ASSERT(pbyte != NULL);
 
-	if(byteBuff_isEmpty(self)){
+	if(idx >= byteBuff_size(self)){
 		return EZP_EAGAIN;
 	}
-	*pbyte = (self->m_data[ self->m_readIndex ]);
+	*pbyte = (self->m_data[ WRAPPED(self->m_readIndex + idx) ]);
 	return EZP_OK;
 }
 
 
-EZP_RESULT byteBuff_pop(byteBuff_t *self, uint8_t *pbyte){
+EZP_RESULT byteBuff_pop(byteBuff_t *self, uint8_t count){
 	// EZP_VLOG(">> %s\n", __func__);
 
-	if(byteBuff_isEmpty(self)){
-		return EZP_EAGAIN;
-	}
-	if(pbyte != NULL){
-		*pbyte = self->m_data[ self->m_readIndex ];
+	if(byteBuff_size(self) < count){
+		return EZP_EARG;
 	}
 
-
-	self->m_readIndex = INCED( self->m_readIndex );
+	self->m_readIndex = WRAPPED( self->m_readIndex + count );
 	return EZP_OK;
 }
