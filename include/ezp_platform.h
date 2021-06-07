@@ -65,3 +65,4 @@ EZP_RESULT ezp_platform_on_recv_msg(ezp_msg_t*);
 #if defined(__cplusplus)
 }
 #endif
+

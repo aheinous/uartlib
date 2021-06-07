@@ -5,7 +5,7 @@
 #include "ezp_msg_sender.h"
 #include "ezp_msg_reader.h"
 
-#define SIZEOF_SEQNUM 2
+#define SIZEOF_SEQNUM 1
 #define SIZEOF_TYPEID 1
 
 // -----------------------------------------------------------------------------------------

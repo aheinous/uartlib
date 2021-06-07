@@ -60,7 +60,7 @@ EZP_RESULT msgReader_read_msg(msgReader_t *self, ezp_msg_t *msg){
         else if(res == EZP_OK) {
             int msgSize;
             EZP_CHECK_OK(sizeOfWholeMsg(msg->typeID, &msgSize));
-            byteBuff_pop(&self->byteBuff, 1);
+            byteBuff_pop(&self->byteBuff, msgSize);
             return EZP_OK;
         }
         else {
@@ -101,6 +101,7 @@ EZP_RESULT msgReader_read_msg(msgReader_t *self, ezp_msg_t *msg){
 //     }
 
 // }
+
 
 
 

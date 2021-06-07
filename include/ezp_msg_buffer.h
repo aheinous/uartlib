@@ -10,8 +10,8 @@
 
 typedef struct {
 	ezp_msg_t m_buff[EZP_MSG_BUFF_SIZE];
-	uint8_t m_writeIndex;
-	uint8_t m_readIndex;
+	volatile uint8_t m_writeIndex;
+	volatile uint8_t m_readIndex;
 } msgRingbuff_t;
 
 

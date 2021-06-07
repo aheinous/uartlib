@@ -14,7 +14,7 @@ CXX := g++
 BUILD_ROOT := ./build
 BUILD_DIR := $(BUILD_ROOT)/$(TEST_NAME)
 SRC_DIRS := ./src
-INC_DIRS := ./include ./tests/msg_tables
+INC_DIRS := ./include ./tests/msg_tables ./tests/include
 TEST_DIR := ./tests/src
 
 TEST_EXEC := $(BUILD_DIR)/$(TEST_NAME)
@@ -23,11 +23,17 @@ CFLAGS := -Wall -g -fdiagnostics-color=always
 CXXFLAGS := -Wall -g -fdiagnostics-color=always
 CPPFLAGS := '-DEZP_MSG_TABLE="$(MSG_TABLE)"'
 
-
+# OMIT := ./test/fakes/ezp_byte_buffer.c
+# OMIT := $(shell echo $(OMIT)| xargs -n 1 basename)
 
 # Find all the C and C++ files we want to compile
-SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
+# SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c | grep -v -f <(echo $(OMIT)))
+SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c )
+
+SRCS := $(shell ./prune.sh '$(SRCS)' '$(EXTRA_SRCS)')
 SRCS += $(EXTRA_SRCS:%=./tests/%)
+
+
 TEST_SRCS := $(TEST_DIR)/$(TEST_NAME).cpp
 CATCH_SRC := $(TEST_DIR)/catch_main.cpp
 
@@ -95,7 +101,9 @@ print:
 	@echo "objs:" $(OBJS) "\n"
 	@echo "test objs:" $(TEST_OBJS) "\n"
 	@echo "srcs:" $(SRCS) "\n"
+	@echo "PRUNED_SRCS" $(PRUNED_SRCS) "\n"
 	@echo "test_srcs:" $(TEST_SRCS) "\n"
+	@echo "omit:" $(OMIT) "\n"
 
 clean:
 	rm -r $(BUILD_DIR)

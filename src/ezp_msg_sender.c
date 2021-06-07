@@ -12,6 +12,7 @@ void msgSender_init(msgSender_t *self) {
 }
 
 EZP_RESULT msgSender_send(msgSender_t *self, ezp_msg_t *msg){
+    csumCalc_init(&self->m_csum);
     if(msgSender_serialize(self, msg) == EZP_EAGAIN) {
         return EZP_EAGAIN;
     }
