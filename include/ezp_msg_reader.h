@@ -18,7 +18,7 @@ typedef struct{
 }msgReader_t;
 
 
-void msgReader_init(msgReader_t*);
+EZP_RESULT msgReader_init(msgReader_t *self, uint8_t *buff, uint8_t len);
 
 EZP_RESULT msgReader_push_byte(msgReader_t *, uint8_t );
 

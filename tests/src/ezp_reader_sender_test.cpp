@@ -20,28 +20,50 @@ extern "C"{
 msgReader_t reader;
 msgSender_t sender;
 
+
+uint8_t buff[EZP_RECV_BUFFER_RECOMENDED_SIZE];
+
 int flush_calls = 0;
 
-extern "C"{
 
-    EZP_RESULT ezp_platform_write_byte(uint8_t b) {
-        REQUIRE(msgReader_push_byte(&reader, b) == EZP_OK);
-        return EZP_OK;
-    }
-    EZP_RESULT ezp_platform_flush() {
-        ++flush_calls;
-        return EZP_OK;
-    }
 
-    EZP_RESULT ezp_platform_on_recv_msg(ezp_msg_t *m) {
-        return EZP_OK;
-    }
+EZP_RESULT write_byte(uint8_t b) {
+    REQUIRE(msgReader_push_byte(&reader, b) == EZP_OK);
+    return EZP_OK;
+}
+EZP_RESULT flush() {
+    ++flush_calls;
+    return EZP_OK;
+}
+
+EZP_RESULT on_recv_msg(ezp_msg_t *m) {
+    return EZP_OK;
+}
+
+
+TEST_CASE("round up pow2 marco test"){ // TODO move
+    REQUIRE(EZP_ROUND_UP_POW2(1) == 1);
+    REQUIRE(EZP_ROUND_UP_POW2(2) == 2);
+    REQUIRE(EZP_ROUND_UP_POW2(3) == 4);
+    REQUIRE(EZP_ROUND_UP_POW2(4) == 4);
+    REQUIRE(EZP_ROUND_UP_POW2(5) == 8);
+    REQUIRE(EZP_ROUND_UP_POW2(128) == 128);
+    REQUIRE(EZP_ROUND_UP_POW2(255) == 256);
+    REQUIRE(EZP_ROUND_UP_POW2(256) == 256);
+
 }
 
 
 TEST_CASE("reader sender loopback"){
-    msgReader_init(&reader);
-    msgSender_init(&sender);
+
+    ezp_platform_t platform;
+    platform.write_byte = write_byte;
+    platform.flush = flush;
+    platform.on_recv_msg = on_recv_msg;
+
+
+    msgReader_init(&reader, buff, sizeof(buff));
+    msgSender_init(&sender, platform);
 
     flush_calls = 0;
     pops.clear();
@@ -62,11 +84,6 @@ TEST_CASE("reader sender loopback"){
         REQUIRE(flush_calls == 1);
 
     }
-
-
-
-
-
 
         SECTION("send then read works"){
             ezp_msg_t rmsg;
@@ -103,8 +120,8 @@ TEST_CASE("reader sender loopback"){
 
         SECTION("send then read works with garbage sent first") {
 
-            ezp_platform_write_byte(1);
-            ezp_platform_write_byte(2);
+            platform.write_byte(1);
+            platform.write_byte(2);
 
 
             ezp_msg_t rmsg;
@@ -121,8 +138,8 @@ TEST_CASE("reader sender loopback"){
 
         SECTION("send then read works with out of range garbage sent first") {
 
-            ezp_platform_write_byte(1);
-            ezp_platform_write_byte(234);
+            platform.write_byte(1);
+            platform.write_byte(234);
 
 
             ezp_msg_t rmsg;

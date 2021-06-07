@@ -1,12 +1,15 @@
 #include "ezp_byte_buffer.h"
 
-#define INCED(index) (((index)+1) & (EZP_BYTE_BUFFER_CAPACITY - 1))
-#define WRAPPED(index) ((index) & (EZP_BYTE_BUFFER_CAPACITY - 1))
+#define INCED(index) (((index)+1) & (self->m_capacity - 1))
+#define WRAPPED(index) ((index) & (self->m_capacity- 1))
 
 
-void byteBuff_init(byteBuff_t *self){
+EZP_RESULT byteBuff_init(byteBuff_t *self, uint8_t *buff, uint8_t len) {
 	self->m_writeIndex = 0;
 	self->m_readIndex = 0;
+	self->m_data = buff;
+	self->m_capacity = len;
+	return EZP_OK;
 }
 
 ezp_bool_t byteBuff_isFull(byteBuff_t *self){
@@ -23,7 +26,7 @@ ezp_bool_t byteBuff_isEmpty(byteBuff_t *self){
 
 
 uint8_t byteBuff_size(byteBuff_t *self){
-	return (self->m_writeIndex - self->m_readIndex) & (EZP_BYTE_BUFFER_CAPACITY - 1);
+	return WRAPPED(self->m_writeIndex - self->m_readIndex) ;
 }
 
 EZP_RESULT byteBuff_push(byteBuff_t *self, uint8_t byte){

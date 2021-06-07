@@ -68,26 +68,26 @@ CPPFLAGS += $(INC_FLAGS) -MMD -MP
 
 
 $(TEST_EXEC): $(TEST_OBJS) $(OBJS) $(CATCH_OBJ)
-	$(CXX) $(TEST_OBJS) $(OBJS) $(CATCH_OBJ) -o $@ $(LDFLAGS)
+	@$(CXX) $(TEST_OBJS) $(OBJS) $(CATCH_OBJ) -o $@ $(LDFLAGS)
 
 
 # Build step for C source
 $(BUILD_DIR)/%.c.o: %.c
-	mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	@mkdir -p $(dir $@)
+	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Build step for C++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
-	mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@mkdir -p $(dir $@)
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.cpp.o: %.cpp
-	mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@mkdir -p $(dir $@)
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 $(CATCH_OBJ): $(CATCH_SRC)
-	mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@mkdir -p $(dir $@)
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 
 
@@ -106,7 +106,7 @@ print:
 	@echo "omit:" $(OMIT) "\n"
 
 clean:
-	rm -r $(BUILD_DIR)
+	@rm -r $(BUILD_DIR)
 
 # Include the .d makefiles. The - at the front suppresses the errors of missing
 # Makefiles. Initially, all the .d files will be missing, and we don't want those

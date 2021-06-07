@@ -16,7 +16,6 @@ typedef uint8_t ezp_bool_t;
 #define EZP_FALSE (0)
 
 /**
-@ingroup group_comm
 @brief Return values.
 */
 typedef enum {

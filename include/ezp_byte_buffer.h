@@ -3,16 +3,18 @@
 #include "ezp_types.h"
 
 // must be big enough to hold one msg
-#define EZP_BYTE_BUFFER_CAPACITY (32) // TODO figure out at compile time
+// #define EZP_BYTE_BUFFER_CAPACITY (32) // TODO figure out at compile time
 
 typedef struct {
-    uint8_t m_data[EZP_BYTE_BUFFER_CAPACITY];
+    // uint8_t m_data[EZP_BYTE_BUFFER_CAPACITY];
+	uint8_t *m_data;
 	volatile uint8_t m_writeIndex;
 	volatile uint8_t m_readIndex;
+	uint8_t m_capacity;
 } byteBuff_t;
 
 // max size 256
-void byteBuff_init(byteBuff_t *self);
+EZP_RESULT byteBuff_init(byteBuff_t *self, uint8_t *buff, uint8_t len);
 
 ezp_bool_t byteBuff_isFull(byteBuff_t *self);
 

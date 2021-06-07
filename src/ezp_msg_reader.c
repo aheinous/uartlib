@@ -40,9 +40,9 @@ static EZP_RESULT msgReader_checkChecksum(msgReader_t *self, int size) {
 }
 
 
-void msgReader_init(msgReader_t *self){
-    byteBuff_init(&self->byteBuff);
+EZP_RESULT msgReader_init(msgReader_t *self, uint8_t *buff, uint8_t len){
     self->pos = 0;
+    return byteBuff_init(&self->byteBuff, buff, len);
 }
 
 

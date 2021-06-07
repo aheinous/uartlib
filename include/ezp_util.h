@@ -62,6 +62,8 @@ extern "C" {
 #endif
 
 
+#define countof(arr) (sizeof(arr) / sizeof(arr[0]))
+
 #define EZP_CHECK_OK(expn) do{ \
 	EZP_RESULT res = (expn); \
 	EZP_ASSERT(res == EZP_OK); \

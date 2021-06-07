@@ -19,18 +19,18 @@ run-%: %
 	./build/$</$<
 
 ezp_msg_buffer_test:
-	TEST_NAME=$@ MSG_TABLE=foobarpingpong.h EXTRA_SRCS=fakes/ezp_platform_stubs.c $(MAKE) -e -f $(TEMPLATE)
+	@TEST_NAME=$@ MSG_TABLE=foobarpingpong.h $(MAKE) -e -f $(TEMPLATE)
 
 ezp_byte_buffer_test:
-	TEST_NAME=$@ MSG_TABLE=foobarpingpong.h EXTRA_SRCS=fakes/ezp_platform_stubs.c  $(MAKE) -e -f $(TEMPLATE)
+	@TEST_NAME=$@ MSG_TABLE=foobarpingpong.h  $(MAKE) -e -f $(TEMPLATE)
 
 ezp_csum_test:
-	TEST_NAME=$@ MSG_TABLE=foobarpingpong.h EXTRA_SRCS=fakes/ezp_platform_stubs.c $(MAKE) -e -f $(TEMPLATE)
+	@TEST_NAME=$@ MSG_TABLE=foobarpingpong.h $(MAKE) -e -f $(TEMPLATE)
 
 ezp_reader_sender_test:
-	TEST_NAME=$@ MSG_TABLE=foobarpingpong.h  EXTRA_SRCS=fakes/ezp_byte_buffer.c $(MAKE) -e -f $(TEMPLATE)
+	@TEST_NAME=$@ MSG_TABLE=foobarpingpong.h  EXTRA_SRCS=fakes/ezp_byte_buffer.c $(MAKE) -e -f $(TEMPLATE)
 
 
 
 clean:
-	rm -r ./build/
+	@rm -r ./build/

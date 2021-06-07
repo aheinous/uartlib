@@ -2,6 +2,7 @@
 
 extern "C"{
     #include "ezp_msg_buffer.h"
+    #include "ezp_util.h"
 }
 
 
@@ -10,7 +11,9 @@ SCENARIO("Using msgBuffer"){
         msgRingbuff_t self;
         ezp_msg_t msg;
 
-        msgRingbuff_init(&self);
+        ezp_msg_t data[4];
+
+        msgRingbuff_init(&self, data, countof(data));
 
         THEN("empty"){
             REQUIRE(msgRingbuff_isEmpty(&self));

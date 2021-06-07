@@ -7,8 +7,9 @@
 static EZP_RESULT msgSender_serialize(msgSender_t *self, ezp_msg_t *msg);
 static EZP_RESULT msgSender_send_csum(msgSender_t *self);
 
-void msgSender_init(msgSender_t *self) {
+void msgSender_init(msgSender_t *self, ezp_platform_t platform) {
     csumCalc_init(&self->m_csum);
+    self->m_platform = platform;
 }
 
 EZP_RESULT msgSender_send(msgSender_t *self, ezp_msg_t *msg){
@@ -20,11 +21,11 @@ EZP_RESULT msgSender_send(msgSender_t *self, ezp_msg_t *msg){
     if(msgSender_send_csum(self) == EZP_EAGAIN) {
         return EZP_EAGAIN;
     }
-    return ezp_platform_flush();
+    return self->m_platform.flush();
 }
 
 static EZP_RESULT msgSender_send_uint8_t(msgSender_t *self, uint8_t data) {
-    if(ezp_platform_write_byte(data) == EZP_OK) {
+    if(self->m_platform.write_byte(data) == EZP_OK){
         csumCalc_update(&self->m_csum, data);
         return EZP_OK;
     }
@@ -37,10 +38,10 @@ static EZP_RESULT msgSender_send_csum(msgSender_t *self) {
 
     csumCalc_getCsum(&self->m_csum, &low, &high);
 
-    if(ezp_platform_write_byte(low) != EZP_OK) {
+    if(self->m_platform.write_byte(low) != EZP_OK) {
         return EZP_EAGAIN;
     }
-    if(ezp_platform_write_byte(high) != EZP_OK) {
+    if(self->m_platform.write_byte(high) != EZP_OK) {
         return EZP_EAGAIN;
     }
     return EZP_OK;

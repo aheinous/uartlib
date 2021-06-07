@@ -13,10 +13,11 @@ extern "C" {
 
 // should either block (which will cause process to block) or buffer
 // the bytes to avoid having to return EZP_EAGAIN
-EZP_RESULT ezp_platform_write_byte(uint8_t);
-EZP_RESULT ezp_platform_flush();
-
-EZP_RESULT ezp_platform_on_recv_msg(ezp_msg_t*);
+typedef struct{
+    EZP_RESULT (*write_byte)(uint8_t);
+    EZP_RESULT (*flush)();
+    EZP_RESULT (*on_recv_msg)(ezp_msg_t*);
+} ezp_platform_t;
 
 
 
