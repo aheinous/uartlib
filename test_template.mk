@@ -21,7 +21,7 @@ TEST_EXEC := $(BUILD_DIR)/$(TEST_NAME)
 
 CFLAGS := -Wall -g -fdiagnostics-color=always
 CXXFLAGS := -Wall -g -fdiagnostics-color=always
-CPPFLAGS := '-DEZP_MSG_TABLE="$(MSG_TABLE)"'
+CPPFLAGS := '-DEZP_MSG_TABLE="$(MSG_TABLE)"' -DEZP_DEBUG
 
 # OMIT := ./test/fakes/ezp_byte_buffer.c
 # OMIT := $(shell echo $(OMIT)| xargs -n 1 basename)

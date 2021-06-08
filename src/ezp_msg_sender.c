@@ -4,8 +4,8 @@
 #include "ezp_util.h"
 
 
-static EZP_RESULT msgSender_serialize(msgSender_t *self, ezp_msg_t *msg);
-static EZP_RESULT msgSender_send_csum(msgSender_t *self);
+static inline EZP_RESULT msgSender_serialize(msgSender_t *self, ezp_msg_t *msg);
+static inline EZP_RESULT msgSender_send_csum(msgSender_t *self);
 
 void msgSender_init(msgSender_t *self, ezp_platform_t platform) {
     csumCalc_init(&self->m_csum);
@@ -24,7 +24,7 @@ EZP_RESULT msgSender_send(msgSender_t *self, ezp_msg_t *msg){
     return self->m_platform.flush();
 }
 
-static EZP_RESULT msgSender_send_uint8_t(msgSender_t *self, uint8_t data) {
+static inline EZP_RESULT msgSender_send_uint8_t(msgSender_t *self, uint8_t data) {
     if(self->m_platform.write_byte(data) == EZP_OK){
         csumCalc_update(&self->m_csum, data);
         return EZP_OK;
@@ -32,7 +32,7 @@ static EZP_RESULT msgSender_send_uint8_t(msgSender_t *self, uint8_t data) {
     return EZP_EAGAIN;
 }
 
-static EZP_RESULT msgSender_send_csum(msgSender_t *self) {
+static inline EZP_RESULT msgSender_send_csum(msgSender_t *self) {
     uint8_t low;
     uint8_t high;
 
@@ -56,12 +56,7 @@ static EZP_RESULT msgSender_send_csum(msgSender_t *self) {
 #define END_MSG(msgName) 		} break;
 
 
-static EZP_RESULT msgSender_serialize(msgSender_t *self,ezp_msg_t *msg) {
-
-
-    // msgSender_t self;
-
-    // initMsgSender(&self);
+static inline EZP_RESULT msgSender_serialize(msgSender_t *self,ezp_msg_t *msg) {
 
     if(msgSender_send_uint8_t(self, msg->typeID) != EZP_OK) {
         return EZP_EAGAIN;
@@ -81,15 +76,10 @@ static EZP_RESULT msgSender_serialize(msgSender_t *self,ezp_msg_t *msg) {
 
         default:
             EZP_ELOG("Unexpected msg type ID: %d\n", msg->typeID);
-            //return EZP_EARG;
             EZP_ASSERT(0);
+            return EZP_EARG;
     }
 
 
     return EZP_OK;
-    // // TODO rename finish send to have "object" name
-    // if(finish_send(&self) == EZP_OK){
-    // 	return EZP_OK;
-    // }
-    // return EZP_EAGAIN;
 }

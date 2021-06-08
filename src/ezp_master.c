@@ -2,49 +2,48 @@
 #include "ezp_master.h"
 #include "ezp_msg_sender.h"
 #include "ezp_msg_reader.h"
-
 #include "ezp_platform.h"
 #include "ezp_util.h"
 #include "ezp_msg.h"
 
-#define RETRY_INTERVAL 10
-
-
-#define NONE (-10) 	// Use -10 instead of -1 to stop NONE from getting
-					// incremented into the valid seqNum range of 0->255
-					// TODO ???
-#if 1
-
-
-
-
-
-// static EZP_RESULT master_actualRecv(ezp_master_t *self, ezp_msg_t* msg);
-
+#define NONE (-1)
 
 EZP_RESULT master_init(	ezp_master_t *self,
 						uint8_t *recv_buffer_data, uint8_t recv_buff_len,
 						ezp_msg_t *send_buffer_data, uint8_t send_buffer_len,
-                        ezp_platform_t platform)
+						ezp_platform_t platform, int32_t retry_intval)
 {
-	self->lastSeqNumInSendBuffer = 0;
-	self->lastSeqNumAckRecvd = NONE;
-	self->lastSeqNumFullyRecvd = NONE;
-	self->timeTillRetry = 0;
+	if(	!self
+		|| !recv_buffer_data
+		|| !send_buffer_data
+		|| !IS_POW2(recv_buff_len)
+		|| !IS_POW2(send_buffer_len)
+		|| !platform.write_byte
+		|| !platform.flush
+		|| !platform.on_recv_msg )
+	{
+		EZP_ASSERT(0);
+		return EZP_EARG;
+	}
+
+	self->m_next_send_seq_num = 0;
+	self->m_last_seq_num_ack_recvd = NONE;
+	self->m_last_seq_num_recvd_and_handled = NONE;
+	self->m_time_till_retry = 0;
     self->m_platform = platform;
+	self->m_retry_intval = retry_intval;
 
-	msgRingbuff_init(&self->msgSendQueue, send_buffer_data, send_buffer_len);
-	msgReader_init(&self->msg_reader, recv_buffer_data, recv_buff_len);
+	msgRingbuff_init(&self->m_send_queue, send_buffer_data, send_buffer_len);
+	msgReader_init(&self->m_msg_reader, recv_buffer_data, recv_buff_len);
 
-	self->initted = EZP_TRUE;
+	self->m_initted = EZP_TRUE;
 	return EZP_OK;
 }
 
 
 
-
-static EZP_RESULT master_actualSend(ezp_master_t *self, ezp_msg_t *msg){
-	EZP_ASSERT(self->initted);
+static inline EZP_RESULT master_actualSend(ezp_master_t *self, ezp_msg_t *msg){
+	EZP_ASSERT(self->m_initted);
 
 	EZP_LOG("Sending:");
 	ezp_printMsg(msg);
@@ -53,13 +52,10 @@ static EZP_RESULT master_actualSend(ezp_master_t *self, ezp_msg_t *msg){
 
     msgSender_init(&sender, self->m_platform);
 	return msgSender_send(&sender, msg);
-
-
-
 }
 
 
-static EZP_RESULT master_sendAckOf(ezp_master_t *self, ezp_msg_t *msg){
+static inline EZP_RESULT master_sendAckOf(ezp_master_t *self, ezp_msg_t *msg){
 	EZP_ASSERT(msg != NULL);
 	EZP_ASSERT(msg->typeID != ezp_msgID_ack);
 
@@ -68,69 +64,56 @@ static EZP_RESULT master_sendAckOf(ezp_master_t *self, ezp_msg_t *msg){
 	ack.typeID = ezp_msgID_ack;
 	ack._seqNum = msg->_seqNum;
 
-
-	EZP_RESULT res = master_actualSend(self, & ack);
-	if(res==EZP_OK){
-		return EZP_OK;
-	}
-	EZP_WLOG("master_sendAckOf(): master_actualSend() gave %s, retrying ...\n",
-				ezp_res_str(res));
-
-	return res;
+	return master_actualSend(self, & ack);
 }
 
 
-static void master_considerSend(ezp_master_t *self){
-	if(  msgRingbuff_isEmpty(& self->msgSendQueue) ){
+static inline void master_considerSend(ezp_master_t *self, int32_t time_elapsed) {
+	if(  msgRingbuff_isEmpty(& self->m_send_queue) ){
 		return;
 	}
 
-	if(self->timeTillRetry > 0) {
-		EZP_LOG_INT(self->timeTillRetry);
-		--(self->timeTillRetry);
+	if(self->m_time_till_retry > time_elapsed) {
+		EZP_LOG_INT(self->m_time_till_retry);
+		self->m_time_till_retry -= time_elapsed;
 		return;
 	}
 
-	// EZP_VLOG(">> %s -- sending msg\n", __func__);
-	ezp_msg_t *msgToSend;
-	EZP_CHECK_OK(msgRingbuff_peek(& self->msgSendQueue, &msgToSend));
+	self->m_time_till_retry = 0;
 
+	ezp_msg_t *msg_to_send;
+	EZP_CHECK_OK(msgRingbuff_peek(& self->m_send_queue, &msg_to_send));
 
-
-	master_actualSend(self, msgToSend);
-	self->timeTillRetry = RETRY_INTERVAL;
-
-
-	// TODO wait for ack
-	//msgRingbuff_pop(&msgSendQueue, NULL);
+	master_actualSend(self, msg_to_send);
+	self->m_time_till_retry = self->m_retry_intval;
 }
 
 
-static void master_handleAck(ezp_master_t *self, ezp_msg_t *ack){
+static inline void master_handleAck(ezp_master_t *self, ezp_msg_t *ack){
 	EZP_LOG("got ack\n");
 
-	if(ack->_seqNum == self->lastSeqNumAckRecvd){
+	if(ack->_seqNum == self->m_last_seq_num_ack_recvd){
 		EZP_LOG("Recv'd duplicate ACK: %d\n", (int) ack->_seqNum);
 		return;
 	}
-	if( self->lastSeqNumAckRecvd != NONE
-		&& ack->_seqNum != self->lastSeqNumAckRecvd+1 )
+	if( self->m_last_seq_num_ack_recvd != NONE
+		&& ack->_seqNum != self->m_last_seq_num_ack_recvd+1 )
 	{
 		EZP_ELOG("Recv'd unexpected ACK %d.\n",
 					(int) ack->_seqNum);
 		return;
 	}
 
-	if(msgRingbuff_isEmpty(& self->msgSendQueue)){
+	if(msgRingbuff_isEmpty(& self->m_send_queue)){
 		// Presumably we've recv'd this ACK before.
 		// Either that or we've reset and are recving
 		// acks for msgs sent before reset.
-		EZP_WLOG("Recv'd Ack with empty msgSendQueue !\n");
+		EZP_WLOG("Recv'd Ack with empty m_send_queue !\n");
 		return;
 	}
 
 	ezp_msg_t *possiblyAckedMsg;
-	EZP_CHECK_OK(msgRingbuff_peek(& self->msgSendQueue, &possiblyAckedMsg));
+	EZP_CHECK_OK(msgRingbuff_peek(& self->m_send_queue, &possiblyAckedMsg));
 
 	if(possiblyAckedMsg->_seqNum != ack->_seqNum){
 		EZP_ELOG("Ack %d does not match msg in send queue %d\n",
@@ -140,20 +123,15 @@ static void master_handleAck(ezp_master_t *self, ezp_msg_t *ack){
 	}
 
 	// seqNum matchs msg in queue
-	EZP_CHECK_OK(msgRingbuff_pop( & self->msgSendQueue, NULL));
-	// possiblyAckedMsg = NULL; // invalid after pop
-	// EZP_ASSERT(ack->_seqNum == lastSeqNumAckRecvd+1);
-	self->lastSeqNumAckRecvd = ack->_seqNum;
-	self->timeTillRetry = 0;
+	EZP_CHECK_OK(msgRingbuff_pop( & self->m_send_queue, NULL));
+	self->m_last_seq_num_ack_recvd = ack->_seqNum;
+	self->m_time_till_retry = 0;
 }
 
 
-// static uint8_t lastSeqNumFullyRecvd = 0; // TODO
-// static int fullyRecvdAtLeastOneMsg = 0;
 
-static void master_handleNonAck(ezp_master_t *self, ezp_msg_t *msg){
-
-	if(self->lastSeqNumFullyRecvd == msg->_seqNum )
+static inline void master_handleNonAck(ezp_master_t *self, ezp_msg_t *msg){
+	if(self->m_last_seq_num_recvd_and_handled == msg->_seqNum )
 	{
 		// drop duplicate
 		EZP_LOG("Dropping duplicate message, but resending ACK. SeqNum: %d\n",
@@ -162,34 +140,22 @@ static void master_handleNonAck(ezp_master_t *self, ezp_msg_t *msg){
 		return;
 	}
 
-	// EZP_RESULT recv_res = ezp_platform_on_recv_msg(msg);
     EZP_RESULT recv_res = self->m_platform.on_recv_msg(msg);
 	if(recv_res == EZP_OK){
 		EZP_VLOG("Recv'd msg, successfully pushed to recvQueue.\n");
 		master_sendAckOf(self, msg);
 
-		self->lastSeqNumFullyRecvd = msg->_seqNum;
+		self->m_last_seq_num_recvd_and_handled = msg->_seqNum;
 	}else{
 		EZP_WLOG("Recv'd msg, but ezp_platform_on_recv_msg gave res %s, dropping.\n",
 						ezp_res_str(recv_res));
 	}
-
-
-	// EZP_RESULT pushRes = msgRingbuff_push( & self->msgRecvQueue, msg);
-	// if(pushRes == EZP_OK){
-	// 	EZP_VLOG("Recv'd msg, successfully pushed to recvQueue.\n");
-	// 	master_sendAckOf(self, msg);
-
-	// 	self->lastSeqNumFullyRecvd = msg->_seqNum;
-	// }else{
-	// 	EZP_WLOG("Recv'd msg, but no room in recvQueue (got res %s), dropping.\n",
-	// 				ezp_res_str(pushRes));
-	// }
 }
 
-static void master_handleAnyRecvdMsgs(ezp_master_t *self){
+
+static inline void master_handleAnyRecvdMsgs(ezp_master_t *self){
 	ezp_msg_t recvdMsg;
-	EZP_RESULT recvRes = msgReader_read_msg(&self->msg_reader, &recvdMsg);
+	EZP_RESULT recvRes = msgReader_read_msg(&self->m_msg_reader, &recvdMsg);
 	if(recvRes == EZP_OK){
 
 		if(recvdMsg.typeID == ezp_msgID_ack){
@@ -204,11 +170,12 @@ static void master_handleAnyRecvdMsgs(ezp_master_t *self){
 }
 
 
-EZP_RESULT master_process(ezp_master_t *self){
+EZP_RESULT master_process(ezp_master_t *self, int32_t time_elapsed){
 	EZP_VLOG(">> %s\n", __func__);
-	EZP_ASSERT(self->initted);
+	EZP_ASSERT(self != NULL);
+	EZP_ASSERT(self->m_initted);
 
-	master_considerSend(self);
+	master_considerSend(self, time_elapsed);
 	master_handleAnyRecvdMsgs(self);
 
 	return EZP_OK;
@@ -216,54 +183,22 @@ EZP_RESULT master_process(ezp_master_t *self){
 
 
 
-// static EZP_RESULT checkChecksum(uint8_t *buff, int size) {
-// 	csum_calc_t calc;
-// 	csumCalc_init(&calc);
-// 	for(int i = 0; i < size - EZP_SIZEOF_CSUM; i++) {
-// 		csumCalc_update(&calc, buff[i]);
-// 	}
-
-// 	// csumCalc_getCsum(&calc) == (buff[size - 2] | (buff[size - 1] << 8))
-// 	uint8_t low, high;
-// 	csumCalc_getCsum(&calc, &low, &high);
-
-// 	if(buff[size-2] == low && buff[size-1] == high) {
-// 		return EZP_OK;
-// 	}
-// 	else {
-// 		return EZP_EINVALID;
-// 	}
-// }
-
-
-EZP_RESULT master_onRecvByte(ezp_master_t *self, uint8_t b){
-	return msgReader_push_byte(&self->msg_reader, b);
+EZP_RESULT master_on_recv_byte(ezp_master_t *self, uint8_t b){
+	EZP_ASSERT(self != NULL);
+	EZP_ASSERT(self->m_initted);
+	return msgReader_push_byte(&self->m_msg_reader, b);
 }
-
-
-
-
-
-// EZP_RESULT master_recv(ezp_master_t *self, ezp_msg_t *msg) {
-// 	EZP_ASSERT(self != NULL);
-// 	EZP_ASSERT(msg != NULL);
-
-// 	return msgRingbuff_pop(&self->msgRecvQueue, msg);
-// }
-
 
 
 EZP_RESULT master_enqueue(ezp_master_t *self, ezp_msg_t *msg) {
 	EZP_ASSERT(self != NULL);
 	EZP_ASSERT(msg != NULL);
+	EZP_ASSERT(self->m_initted);
 
-	msg->_seqNum = self->lastSeqNumInSendBuffer;
-	EZP_RESULT res = msgRingbuff_push(&(self->msgSendQueue), msg);
+	msg->_seqNum = self->m_next_send_seq_num;
+	EZP_RESULT res = msgRingbuff_push(&(self->m_send_queue), msg);
 	if(res == EZP_OK) {
-		++(self->lastSeqNumInSendBuffer);
+		++(self->m_next_send_seq_num);
 	}
 	return res;
 }
-
-
-#endif

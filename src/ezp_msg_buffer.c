@@ -8,7 +8,7 @@
 
 
 
-EZP_RESULT msgRingbuff_init(msgRingbuff_t *self, ezp_msg_t *buff, uint8_t len) {
+EZP_RESULT msgRingbuff_init(msg_buff_t *self, ezp_msg_t *buff, uint8_t len) {
 	self->m_writeIndex = 0;
 	self->m_readIndex = 0;
 	self->m_data = buff;
@@ -17,19 +17,25 @@ EZP_RESULT msgRingbuff_init(msgRingbuff_t *self, ezp_msg_t *buff, uint8_t len) {
 	return EZP_OK;
 }
 
-ezp_bool_t msgRingbuff_isFull(msgRingbuff_t *self){
+ezp_bool_t msgRingbuff_isFull(msg_buff_t *self){
 	// separating volatile access to two lines suppresses UB warning in IAR
 	uint8_t writeIndex = self->m_writeIndex;
 	return writeIndex - self->m_readIndex == self->m_capacity;
 }
 
-ezp_bool_t msgRingbuff_isEmpty(msgRingbuff_t *self){
+ezp_bool_t msgRingbuff_isEmpty(msg_buff_t *self){
 	// separating volatile access to two lines suppresses UB warning in IAR
 	uint8_t writeIndex = self->m_writeIndex;
 	return (writeIndex == self->m_readIndex);
 }
 
-EZP_RESULT msgRingbuff_push(msgRingbuff_t *self, ezp_msg_t *msg){
+uint8_t msgRingbuff_size(msg_buff_t *self){
+	uint8_t writeIndex = self->m_writeIndex;
+	return writeIndex - self->m_readIndex;
+}
+
+
+EZP_RESULT msgRingbuff_push(msg_buff_t *self, ezp_msg_t *msg){
 	// EZP_VLOG(">> %s\n", __func__);
 
 	if(msgRingbuff_isFull(self)){
@@ -40,7 +46,7 @@ EZP_RESULT msgRingbuff_push(msgRingbuff_t *self, ezp_msg_t *msg){
 	return EZP_OK;
 }
 
-EZP_RESULT msgRingbuff_peek(msgRingbuff_t *self, ezp_msg_t **msg){
+EZP_RESULT msgRingbuff_peek(msg_buff_t *self, ezp_msg_t **msg){
 	// EZP_VLOG(">> %s\n", __func__);
 
 	if(msgRingbuff_isEmpty(self)){
@@ -51,7 +57,7 @@ EZP_RESULT msgRingbuff_peek(msgRingbuff_t *self, ezp_msg_t **msg){
 }
 
 
-EZP_RESULT msgRingbuff_pop(msgRingbuff_t *self, ezp_msg_t *msg){
+EZP_RESULT msgRingbuff_pop(msg_buff_t *self, ezp_msg_t *msg){
 	// EZP_VLOG(">> %s\n", __func__);
 
 	if(msgRingbuff_isEmpty(self)){
@@ -65,44 +71,6 @@ EZP_RESULT msgRingbuff_pop(msgRingbuff_t *self, ezp_msg_t *msg){
 	return EZP_OK;
 }
 
-
-
-
-// void msgRingbuff_tests(){
-
-// 	msgRingbuff_t self;
-// 	msgRingbuff_init(&self);
-// 	printf("---------------------------------------------------------------\n");
-// 	printf("running msgRingbuff_tests\n");
-// 	ezp_msg_t msg;
-// 	// EZP_TEST_ASSERT( msgRingbuff_isEmpty(&self));
-
-// 	for(int i=0; i<3; i++){
-// 		printf("i: %d\n", i);
-// 		EZP_TEST_ASSERT( ! msgRingbuff_isFull(&self));
-// 		msg.typeID = i;
-// 		EZP_TEST_ASSERT(msgRingbuff_push(&self, &msg) == EZP_OK);
-// 		EZP_TEST_ASSERT( ! msgRingbuff_isEmpty(&self));
-// 	}
-
-// 	EZP_TEST_ASSERT( msgRingbuff_isFull(&self));
-// 	EZP_TEST_ASSERT(msgRingbuff_push(&self, &msg) == EZP_EAGAIN);
-
-// 	ezp_msg_t *pmsg;
-// 	for(int i=0; i<3; i++){
-// 		printf("i: %d\n", i);
-// 		EZP_TEST_ASSERT( ! msgRingbuff_isEmpty(&self));
-// 		EZP_TEST_ASSERT( msgRingbuff_peek(&self,&pmsg) == EZP_OK);
-// 		EZP_TEST_ASSERT(pmsg->typeID == i);
-// 		EZP_TEST_ASSERT(msgRingbuff_pop(&self, NULL) == EZP_OK);
-
-// 		EZP_TEST_ASSERT( ! msgRingbuff_isFull(&self));
-// 	}
-
-// 	EZP_TEST_ASSERT( msgRingbuff_isEmpty(&self));
-// 	EZP_TEST_ASSERT( msgRingbuff_peek(&self,&pmsg) == EZP_EAGAIN);
-// 	printf("---------------------------------------------------------------\n");
-// }
 
 
 #endif

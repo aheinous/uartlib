@@ -1,5 +1,12 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
+
 #include "ezp_types.h"
 
 // must be big enough to hold one msg
@@ -28,3 +35,6 @@ EZP_RESULT byteBuff_peek(byteBuff_t *self, uint8_t idx, uint8_t *pbyte);
 
 EZP_RESULT byteBuff_pop(byteBuff_t *self, uint8_t count);
 
+#ifdef __cplusplus
+}
+#endif

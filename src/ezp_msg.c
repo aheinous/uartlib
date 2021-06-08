@@ -8,6 +8,8 @@
 #define SIZEOF_SEQNUM 1
 #define SIZEOF_TYPEID 1
 
+
+
 // -----------------------------------------------------------------------------------------
 // ---------------------  X Macro Msg Table Function Definitions ---------------------------
 // -----------------------------------------------------------------------------------------
@@ -66,6 +68,10 @@ EZP_RESULT sizeOfWholeMsg(EZP_MSG_TYPE_ID typeID, int *size) {
 // Print Funtion ------------------------------------------------
 
 #ifdef EZP_DEBUG
+
+static void print_uint8_t(const char*desc, uint8_t v){
+    EZP_LOG("%s %d\n", desc, (int) v);
+}
 
 #define START_MSG(msgName) 		case (ezp_msgID_ ## msgName):{ \
 									ezp_ ## msgName ## _t *innerMsg = &(msg->msgName);\

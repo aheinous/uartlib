@@ -8,7 +8,7 @@ extern "C"{
 
 SCENARIO("Using msgBuffer"){
     GIVEN("just initted"){
-        msgRingbuff_t self;
+        msg_buff_t self;
         ezp_msg_t msg;
 
         ezp_msg_t data[4];

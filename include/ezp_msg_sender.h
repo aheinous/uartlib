@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include "ezp_csum.h"
 #include "ezp_types.h"
 #include "ezp_msg.h"
@@ -12,7 +17,8 @@ typedef struct {
 
 
 void msgSender_init(msgSender_t *self, ezp_platform_t platform);
-
-
 EZP_RESULT msgSender_send(msgSender_t *self, ezp_msg_t*) ;
 
+#ifdef __cplusplus
+}
+#endif

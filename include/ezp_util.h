@@ -9,11 +9,11 @@ extern "C" {
     #include <stdlib.h>
 
 	#ifndef EZP_VLOG
-    #define EZP_VLOG(...) 	/*printf(__VA_ARGS__)*/
+    #define EZP_VLOG(...) 	printf("EZP Verb: " __VA_ARGS__)
     #endif
 
 	#ifndef EZP_LOG
-    #define EZP_LOG(...)	printf(__VA_ARGS__)
+    #define EZP_LOG(...)	printf(" EZP Log: " __VA_ARGS__)
     #endif
 
 	#ifndef EZP_WLOG
@@ -36,31 +36,36 @@ extern "C" {
     #define EZP_ELOG_INT(expn) EZP_ELOG( #expn ": %d\n", (int) expn)
     #define EZP_WLOG_INT(expn) EZP_WLOG( #expn ": %d\n", (int) expn)
 
-
-    //void print_uint8_t(const char *, uint8_t);
-
 #else
 
-#define EZP_VLOG(...)
-#define EZP_LOG(...)
-#define EZP_WLOG(...)
-#define EZP_ELOG(...)
+    #define EZP_VLOG(...)
+    #define EZP_LOG(...)
+    #define EZP_WLOG(...)
+    #define EZP_ELOG(...)
 
-#define EZP_VLOG_INT(expn)
-#define EZP_LOG_INT(expn)
-#define EZP_ELOG_INT(expn)
-#define EZP_WLOG_INT(expn)
-
-
-
-#define EZP_ASSERT(cond) ((void)sizeof(cond))
-#define print_uint8_t(a,b)
+    #define EZP_VLOG_INT(expn)
+    #define EZP_LOG_INT(expn)
+    #define EZP_ELOG_INT(expn)
+    #define EZP_WLOG_INT(expn)
 
 
-
+    #define EZP_ASSERT(cond) ((void)sizeof(cond))
 
 #endif
 
+
+#define IS_POW2(n) ( (n) && !((n) & (n-1) ))
+
+
+#define EZP_ROUND_UP_POW2(x) \
+        (   ((x) <= 1) ?  1 : \
+            ((x) <= 2) ?  2 : \
+            ((x) <= 4) ?  4 : \
+            ((x) <= 8) ?  8 : \
+            ((x) <= 16) ?  16 : \
+            ((x) <= 32) ?  32 : \
+            ((x) <= 64) ?  64 : \
+            ((x) <= 128) ?  128 :  256)
 
 #define countof(arr) (sizeof(arr) / sizeof(arr[0]))
 

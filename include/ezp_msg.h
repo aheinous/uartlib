@@ -8,10 +8,6 @@ extern "C" {
 #include "ezp_types.h"
 
 
-
-
-
-
 // -----------------------------------------------------------------------------------------
 // ------------------------- X Macro Msg Table Definitions ---------------------------------
 // -----------------------------------------------------------------------------------------
@@ -86,18 +82,7 @@ EZP_RESULT sizeOfWholeMsg(EZP_MSG_TYPE_ID typeID, int *size);
 #endif
 
 
-#define EZP_ROUND_UP_POW2(x) \
-            (   ((x) <= 1) ?  1 : \
-                ((x) <= 2) ?  2 : \
-                ((x) <= 4) ?  4 : \
-                ((x) <= 8) ?  8 : \
-                ((x) <= 16) ?  16 : \
-                ((x) <= 32) ?  32 : \
-                ((x) <= 64) ?  64 : \
-                ((x) <= 128) ?  128 :  256)
 
-#define EZP_RECV_BUFFER_MIN_SIZE EZP_ROUND_UP_POW2(sizeof(ezp_msg_t) + EZP_SIZEOF_CSUM)
-#define EZP_RECV_BUFFER_RECOMENDED_SIZE EZP_ROUND_UP_POW2( 2* (sizeof(ezp_msg_t) + EZP_SIZEOF_CSUM) )
 
 
 #if defined(__cplusplus)

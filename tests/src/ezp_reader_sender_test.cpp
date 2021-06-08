@@ -1,6 +1,6 @@
 #include "catch.hpp"
 #include "ezp_byte_buffer_fake.h"
-
+#include "ezp_master.h" // buffer recomended size
 
 extern "C" {
     #include "ezp_msg_reader.h"
@@ -17,11 +17,11 @@ extern "C"{
     }
 }
 
-msgReader_t reader;
+msg_reader_t reader;
 msgSender_t sender;
 
 
-uint8_t buff[EZP_RECV_BUFFER_RECOMENDED_SIZE];
+uint8_t buff[EZP_RECV_BUFFER_MIN_SIZE * 2];
 
 int flush_calls = 0;
 
