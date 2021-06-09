@@ -2,3 +2,4 @@
 build
 unittests
 .directory
+uartlib.code-workspace
