@@ -5,30 +5,56 @@ extern "C" {
 #endif
 
 #ifdef EZP_DEBUG
-    #include <stdio.h>
-    #include <stdlib.h>
+
+
+    typedef enum{
+        EZP_LOG_VERBOSE,
+        EZP_LOG_NORMAL,
+        EZP_LOG_WARNING,
+        EZP_LOG_ERROR,
+        EZP_LOG_ASSERT,
+
+    } ezp_log_level;
+
+    typedef enum{
+        EZP_OTHER,
+        EZP_ASSERTION_FAILURE,
+    } ezp_error_type;
+
+    #ifdef EZP_USR_LOG_FUNC
+        void ezp_usr_log(ezp_log_level level, const char *fmt, ...);
+    #else
+        static inline void ezp_usr_log(ezp_log_level level, const char *fmt, ...) { (void) fmt; (void) level; }
+    #endif
+
+    #ifdef EZP_USR_ERROR_FUNC
+        void ezp_usr_error(ezp_error_type);
+    #else
+        static inline void ezp_usr_error(ezp_error_type) { }
+    #endif
+
 
 	#ifndef EZP_VLOG
-    #define EZP_VLOG(...) 	printf("EZP Verb: " __VA_ARGS__)
+    #define EZP_VLOG(...) 	 ezp_usr_log(EZP_LOG_VERBOSE, "EZP Verb: " __VA_ARGS__)
     #endif
 
 	#ifndef EZP_LOG
-    #define EZP_LOG(...)	printf(" EZP Log: " __VA_ARGS__)
+    #define EZP_LOG(...)	ezp_usr_log(EZP_LOG_NORMAL,"EZP Log: " __VA_ARGS__)
     #endif
 
 	#ifndef EZP_WLOG
-    #define EZP_WLOG(...)	printf("EZP Warning: " __VA_ARGS__ )
+    #define EZP_WLOG(...)	ezp_usr_log(EZP_LOG_WARNING,"EZP Warning: " __VA_ARGS__ )
     #endif
 
 	#ifndef EZP_ELOG
-    #define EZP_ELOG(...)	printf("EZP Error: " __VA_ARGS__ )
+    #define EZP_ELOG(...)	do{ ezp_usr_log(EZP_LOG_ERROR, "EZP Error: " __VA_ARGS__ ); ezp_usr_error(EZP_OTHER);} while(0)
     #endif
 
     #define EZP_ASSERT(cond) \
 	do { if( !(cond) ){ \
-		printf("Assertion failure: %s:%d\n", __FILE__,__LINE__);\
-		exit(1);\
-	} } while(0)
+		ezp_usr_log(EZP_LOG_ASSERT,"Assertion failure: %s:%d\n", __FILE__,__LINE__);\
+        ezp_usr_error(EZP_ASSERTION_FAILURE); \
+    }} while(0)
 
 
     #define EZP_VLOG_INT(expn) EZP_VLOG( #expn ": %d\n", (int) expn)
@@ -50,7 +76,7 @@ extern "C" {
 
 
     #define EZP_ASSERT(cond) ((void)sizeof(cond))
-
+    #define ezp_on_error() do{}while(0)
 #endif
 
 

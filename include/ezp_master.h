@@ -31,6 +31,8 @@ typedef struct {
     int16_t m_last_seq_num_ack_recvd;
     int16_t m_last_seq_num_recvd_and_handled;
 
+    uint8_t m_consecutive_unexpected_seq_nums;
+
     ezp_bool_t m_initted;
 } ezp_master_t;
 

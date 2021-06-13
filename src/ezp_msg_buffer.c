@@ -20,7 +20,7 @@ EZP_RESULT msgRingbuff_init(msg_buff_t *self, ezp_msg_t *buff, uint8_t len) {
 ezp_bool_t msgRingbuff_isFull(msg_buff_t *self){
 	// separating volatile access to two lines suppresses UB warning in IAR
 	uint8_t writeIndex = self->m_writeIndex;
-	return writeIndex - self->m_readIndex == self->m_capacity;
+	return ((uint8_t)(writeIndex - self->m_readIndex)) == self->m_capacity;
 }
 
 ezp_bool_t msgRingbuff_isEmpty(msg_buff_t *self){
@@ -36,8 +36,6 @@ uint8_t msgRingbuff_size(msg_buff_t *self){
 
 
 EZP_RESULT msgRingbuff_push(msg_buff_t *self, ezp_msg_t *msg){
-	// EZP_VLOG(">> %s\n", __func__);
-
 	if(msgRingbuff_isFull(self)){
 		return EZP_EAGAIN;
 	}
@@ -47,8 +45,6 @@ EZP_RESULT msgRingbuff_push(msg_buff_t *self, ezp_msg_t *msg){
 }
 
 EZP_RESULT msgRingbuff_peek(msg_buff_t *self, ezp_msg_t **msg){
-	// EZP_VLOG(">> %s\n", __func__);
-
 	if(msgRingbuff_isEmpty(self)){
 		return EZP_EAGAIN;
 	}
@@ -58,8 +54,6 @@ EZP_RESULT msgRingbuff_peek(msg_buff_t *self, ezp_msg_t **msg){
 
 
 EZP_RESULT msgRingbuff_pop(msg_buff_t *self, ezp_msg_t *msg){
-	// EZP_VLOG(">> %s\n", __func__);
-
 	if(msgRingbuff_isEmpty(self)){
 		return EZP_EAGAIN;
 	}

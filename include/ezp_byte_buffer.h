@@ -9,11 +9,8 @@ extern "C" {
 
 #include "ezp_types.h"
 
-// must be big enough to hold one msg
-// #define EZP_BYTE_BUFFER_CAPACITY (32) // TODO figure out at compile time
 
 typedef struct {
-    // uint8_t m_data[EZP_BYTE_BUFFER_CAPACITY];
 	uint8_t *m_data;
 	volatile uint8_t m_writeIndex;
 	volatile uint8_t m_readIndex;

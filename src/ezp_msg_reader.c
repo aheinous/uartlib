@@ -13,6 +13,45 @@ static inline EZP_RESULT msgReader_read_uint8_t(msg_reader_t * self, uint8_t * b
     ++(self->pos);
     return EZP_OK;
 }
+#define msgReader_read_char(s, d) msgReader_read_uint8_t(s, (uint8_t*)d)
+#define msgReader_read_int8_t(s, d) msgReader_read_uint8_t(s, (uint8_t*)d)
+
+static inline EZP_RESULT msgReader_read_uint16_t(msg_reader_t * self, uint16_t * d){
+    uint8_t b;
+    *d = 0;
+    for(int8_t i=0; i<2; i++){
+        EZP_CHECK_OK(byteBuff_peek(&self->byteBuff, self->pos, &b));
+        *d |= ((uint16_t)b << (i*8));
+        ++(self->pos);
+    }
+    return EZP_OK;
+}
+#define msgReader_read_int16_t(s, d) msgReader_read_uint16_t(s, (uint16_t*)d)
+
+static inline EZP_RESULT msgReader_read_uint32_t(msg_reader_t * self, uint32_t * d){
+    uint8_t b;
+    *d = 0;
+    for(int8_t i=0; i<4; i++){
+        EZP_CHECK_OK(byteBuff_peek(&self->byteBuff, self->pos, &b));
+        *d |= ((uint32_t) b << (i * 8));
+        ++(self->pos);
+    }
+    return EZP_OK;
+}
+#define msgReader_read_int32_t(s, d) msgReader_read_uint32_t(s, (uint32_t*)d)
+
+static inline EZP_RESULT msgReader_read_uint64_t(msg_reader_t * self, uint64_t * d){
+    uint8_t b;
+    *d = 0;
+    for(int8_t i=0; i<8; i++){
+        EZP_CHECK_OK(byteBuff_peek(&self->byteBuff, self->pos, &b));
+        *d |= ((uint64_t) b << (i * 8));
+        ++(self->pos);
+    }
+    return EZP_OK;
+}
+#define msgReader_read_int64_t(s, d) msgReader_read_uint64_t(s, (uint64_t*)d)
+
 
 
 static inline EZP_RESULT msgReader_checkChecksum(msg_reader_t *self, int size) {
@@ -45,7 +84,6 @@ EZP_RESULT msgReader_init(msg_reader_t *self, uint8_t *buff, uint8_t len){
     return byteBuff_init(&self->byteBuff, buff, len);
 }
 
-
 EZP_RESULT msgReader_read_msg(msg_reader_t *self, ezp_msg_t *msg){
     EZP_ASSERT(msg);
 
@@ -58,9 +96,6 @@ EZP_RESULT msgReader_read_msg(msg_reader_t *self, ezp_msg_t *msg){
             byteBuff_pop(&self->byteBuff, 1);
         }
         else if(res == EZP_OK) {
-            int msgSize;
-            EZP_CHECK_OK(sizeOfWholeMsg(msg->typeID, &msgSize));
-            byteBuff_pop(&self->byteBuff, msgSize);
             return EZP_OK;
         }
         else {
@@ -69,6 +104,18 @@ EZP_RESULT msgReader_read_msg(msg_reader_t *self, ezp_msg_t *msg){
     }
 }
 
+
+EZP_RESULT msgReader_on_msg_valid(msg_reader_t *self, ezp_msg_t *msg){
+    int msgSize;
+    EZP_CHECK_OK(sizeOfWholeMsg(msg->typeID, &msgSize));
+    byteBuff_pop(&self->byteBuff, msgSize);
+    return EZP_OK;
+}
+
+EZP_RESULT msgReader_on_msg_invalid(msg_reader_t *self){
+    byteBuff_pop(&self->byteBuff, 1);
+    return EZP_OK;
+}
 
 
 EZP_RESULT msgReader_push_byte(msg_reader_t *self, uint8_t b){
@@ -107,7 +154,8 @@ static inline EZP_RESULT msgReader_try_one_read(msg_reader_t *self, ezp_msg_t *m
 // Deserialize Funtion ---------------------------------------------
 
 #define START_MSG(msgName) 		case (ezp_msgID_ ## msgName):{ \
-									ezp_ ## msgName ## _t *innerMsg = &(msg->msgName);
+									ezp_ ## msgName ## _t *innerMsg = &(msg->msgName); \
+                                    (void) innerMsg ; /* might be unused */
 #define FIELD(type, fieldName) 		if(msgReader_read_ ## type( self, &(innerMsg->fieldName) ) != EZP_OK) { return EZP_EAGAIN; }
 #define END_MSG(msgName) 		} break;
 

@@ -36,6 +36,12 @@ typedef enum {
 
 
 // Struct definitions ---------------------------------------------
+
+
+#if defined(EZP_DEBUG) && defined(__GNUC__)
+#pragma pack(1)
+#endif
+
 #define START_MSG(msgName) 	typedef struct {
 #define FIELD(type, fieldName) 		type fieldName;
 #define END_MSG(msgName) 	} ezp_ ## msgName ## _t;
@@ -55,7 +61,6 @@ typedef enum {
 #define END_MSG(msgName)
 
 typedef struct {
-    // EZP_MSG_TYPE_ID typeID;// TODO switch back
     uint8_t typeID;
     uint8_t _seqNum; // for internal use only
     union {
@@ -66,6 +71,11 @@ typedef struct {
 #undef START_MSG
 #undef END_MSG
 #undef FIELD
+
+#if defined(EZP_DEBUG) && defined(__GNUC__)
+#pragma pack()
+#endif
+
 
 // -----------------------------------------------------------------------------------------
 // ------------------------- End X Macro Msg Table Definitions -----------------------------
@@ -82,7 +92,10 @@ EZP_RESULT sizeOfWholeMsg(EZP_MSG_TYPE_ID typeID, int *size);
 #endif
 
 
-
+#if defined(EZP_DEBUG) && defined(__GNUC__)
+    // requires packed structures
+    ezp_bool_t ezp_msg_equal(ezp_msg_t*left, ezp_msg_t*right);
+#endif
 
 
 #if defined(__cplusplus)

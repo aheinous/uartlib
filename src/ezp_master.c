@@ -8,6 +8,10 @@
 
 #define NONE (-1)
 
+#define WRAPPED(seq_num) ((int16_t)((uint16_t)(seq_num) & 255))
+
+#define UNEXPECTED_SEQ_NUM_THRESHOLD 32
+
 EZP_RESULT master_init(	ezp_master_t *self,
 						uint8_t *recv_buffer_data, uint8_t recv_buff_len,
 						ezp_msg_t *send_buffer_data, uint8_t send_buffer_len,
@@ -32,6 +36,8 @@ EZP_RESULT master_init(	ezp_master_t *self,
 	self->m_time_till_retry = 0;
     self->m_platform = platform;
 	self->m_retry_intval = retry_intval;
+	self->m_consecutive_unexpected_seq_nums = 0;
+
 
 	msgRingbuff_init(&self->m_send_queue, send_buffer_data, send_buffer_len);
 	msgReader_init(&self->m_msg_reader, recv_buffer_data, recv_buff_len);
@@ -94,13 +100,15 @@ static inline void master_handleAck(ezp_master_t *self, ezp_msg_t *ack){
 
 	if(ack->_seqNum == self->m_last_seq_num_ack_recvd){
 		EZP_LOG("Recv'd duplicate ACK: %d\n", (int) ack->_seqNum);
+		msgReader_on_msg_valid(&self->m_msg_reader, ack);
 		return;
 	}
 	if( self->m_last_seq_num_ack_recvd != NONE
-		&& ack->_seqNum != self->m_last_seq_num_ack_recvd+1 )
+		&& ack->_seqNum != WRAPPED(self->m_last_seq_num_ack_recvd+1) )
 	{
-		EZP_ELOG("Recv'd unexpected ACK %d.\n",
+		EZP_WLOG("Recv'd unexpected ACK %d.\n",
 					(int) ack->_seqNum);
+		msgReader_on_msg_invalid(&self->m_msg_reader);
 		return;
 	}
 
@@ -109,6 +117,7 @@ static inline void master_handleAck(ezp_master_t *self, ezp_msg_t *ack){
 		// Either that or we've reset and are recving
 		// acks for msgs sent before reset.
 		EZP_WLOG("Recv'd Ack with empty m_send_queue !\n");
+		msgReader_on_msg_invalid(&self->m_msg_reader);
 		return;
 	}
 
@@ -119,11 +128,13 @@ static inline void master_handleAck(ezp_master_t *self, ezp_msg_t *ack){
 		EZP_ELOG("Ack %d does not match msg in send queue %d\n",
 			ack->_seqNum,
 			possiblyAckedMsg->_seqNum);
+		msgReader_on_msg_invalid(&self->m_msg_reader);
 		return;
 	}
 
 	// seqNum matchs msg in queue
 	EZP_CHECK_OK(msgRingbuff_pop( & self->m_send_queue, NULL));
+	msgReader_on_msg_valid(&self->m_msg_reader, ack);
 	self->m_last_seq_num_ack_recvd = ack->_seqNum;
 	self->m_time_till_retry = 0;
 }
@@ -137,23 +148,39 @@ static inline void master_handleNonAck(ezp_master_t *self, ezp_msg_t *msg){
 		EZP_LOG("Dropping duplicate message, but resending ACK. SeqNum: %d\n",
 				 msg->_seqNum);
 		master_sendAckOf(self, msg);
+		msgReader_on_msg_valid(&self->m_msg_reader, msg);
+
 		return;
 	}
 
-    EZP_RESULT recv_res = self->m_platform.on_recv_msg(msg);
+	if (self->m_last_seq_num_recvd_and_handled != NONE
+			&& msg->_seqNum != WRAPPED(1 + self->m_last_seq_num_recvd_and_handled))
+	{
+		++(self->m_consecutive_unexpected_seq_nums);
+		EZP_WLOG("recvd msg with unexpected seq num. consec: %d\n", (int) self->m_consecutive_unexpected_seq_nums);
+		if(self->m_consecutive_unexpected_seq_nums < UNEXPECTED_SEQ_NUM_THRESHOLD){
+			msgReader_on_msg_invalid(&self->m_msg_reader);
+			return;
+		}
+		// assume valid, and we were off somehow
+	}
+	self->m_consecutive_unexpected_seq_nums = 0;
+	msgReader_on_msg_valid(&self->m_msg_reader, msg);
+
+	EZP_RESULT recv_res = self->m_platform.on_recv_msg(self->m_platform.usr_data, msg);
+
 	if(recv_res == EZP_OK){
-		EZP_VLOG("Recv'd msg, successfully pushed to recvQueue.\n");
+		EZP_VLOG("Recv'd msg successfully.\n");
 		master_sendAckOf(self, msg);
 
 		self->m_last_seq_num_recvd_and_handled = msg->_seqNum;
 	}else{
-		EZP_WLOG("Recv'd msg, but ezp_platform_on_recv_msg gave res %s, dropping.\n",
+		EZP_LOG("Recv'd msg, but m_platform.on_recv_msg gave res %s, dropping.\n",
 						ezp_res_str(recv_res));
 	}
 }
 
-
-static inline void master_handleAnyRecvdMsgs(ezp_master_t *self){
+static inline void master_handleAnyRecvdMsgs(ezp_master_t *self) {
 	ezp_msg_t recvdMsg;
 	EZP_RESULT recvRes = msgReader_read_msg(&self->m_msg_reader, &recvdMsg);
 	if(recvRes == EZP_OK){
@@ -198,7 +225,7 @@ EZP_RESULT master_enqueue(ezp_master_t *self, ezp_msg_t *msg) {
 	msg->_seqNum = self->m_next_send_seq_num;
 	EZP_RESULT res = msgRingbuff_push(&(self->m_send_queue), msg);
 	if(res == EZP_OK) {
-		++(self->m_next_send_seq_num);
+		self->m_next_send_seq_num = WRAPPED(1 + self->m_next_send_seq_num);
 	}
 	return res;
 }

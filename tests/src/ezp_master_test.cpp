@@ -11,35 +11,35 @@ msg_buff_t a_recv_buff;
 msg_buff_t b_recv_buff;
 
 
-EZP_RESULT a_write_byte(uint8_t b) {
+EZP_RESULT a_write_byte(void* usr_data, uint8_t b) {
     master_on_recv_byte(&b_master, b);
     return EZP_OK;
 }
 
 int a_flush_calls = 0;
 
-EZP_RESULT a_flush() {
+EZP_RESULT a_flush(void* usr_data) {
     ++a_flush_calls;
     return EZP_OK;
 }
 
-EZP_RESULT a_on_recv_msg(ezp_msg_t *msg) {
+EZP_RESULT a_on_recv_msg(void* usr_data, ezp_msg_t *msg) {
     return EZP_OK;
 }
 
-EZP_RESULT b_write_byte(uint8_t b) {
+EZP_RESULT b_write_byte(void* usr_data, uint8_t b) {
     master_on_recv_byte(&a_master, b);
     return EZP_OK;
 }
 
 int b_flush_calls = 0;
 
-EZP_RESULT b_flush() {
+EZP_RESULT b_flush(void* usr_data) {
     ++b_flush_calls;
     return EZP_OK;
 }
 
-EZP_RESULT b_on_recv_msg(ezp_msg_t *msg) {
+EZP_RESULT b_on_recv_msg(void* usr_data, ezp_msg_t *msg) {
     msgRingbuff_push(&b_recv_buff, msg);
     return EZP_OK;
 }
@@ -50,7 +50,7 @@ EZP_RESULT b_on_recv_msg(ezp_msg_t *msg) {
 TEST_CASE("basic init") {
 
     SECTION("initted properly"){
-        uint8_t a_bytes[EZP_RECV_BUFFER_RECOMENDED_SIZE];
+        uint8_t a_bytes[EZP_RECV_BUFFER_MIN_SIZE * 2];
         ezp_msg_t a_msgs[4];
 
         ezp_platform_t a_platform;
@@ -82,7 +82,7 @@ TEST_CASE("send and recv"){
 
     SECTION("init both + recv buffs"){
 
-        uint8_t a_bytes[EZP_RECV_BUFFER_RECOMENDED_SIZE];
+        uint8_t a_bytes[EZP_RECV_BUFFER_MIN_SIZE * 2];
         ezp_msg_t a_msgs[4];
 
         ezp_platform_t a_platform;
@@ -92,7 +92,7 @@ TEST_CASE("send and recv"){
 
         REQUIRE(master_init(&a_master, a_bytes, sizeof(a_bytes), a_msgs, countof(a_msgs), a_platform, 100) == EZP_OK);
 
-        uint8_t b_bytes[EZP_RECV_BUFFER_RECOMENDED_SIZE];
+        uint8_t b_bytes[EZP_RECV_BUFFER_MIN_SIZE * 2];
         ezp_msg_t b_msgs[4];
 
         ezp_platform_t b_platform;

@@ -27,16 +27,16 @@ int flush_calls = 0;
 
 
 
-EZP_RESULT write_byte(uint8_t b) {
+EZP_RESULT write_byte(void* usr_data, uint8_t b) {
     REQUIRE(msgReader_push_byte(&reader, b) == EZP_OK);
     return EZP_OK;
 }
-EZP_RESULT flush() {
+EZP_RESULT flush(void* usr_data) {
     ++flush_calls;
     return EZP_OK;
 }
 
-EZP_RESULT on_recv_msg(ezp_msg_t *m) {
+EZP_RESULT on_recv_msg(void* usr_data, ezp_msg_t *m) {
     return EZP_OK;
 }
 
@@ -73,17 +73,17 @@ TEST_CASE("reader sender loopback"){
     // foo.b = 221;
 
     SECTION("sending foo.a, foo.a"){
-    ezp_msg_t msg;
-    msg.typeID = ezp_msgID_foo;
-    msg.foo.a = 0xAA;
-    msg.foo.b = 0xBB;
+        ezp_msg_t msg;
+        msg.typeID = ezp_msgID_foo;
+        msg.foo.a = 0xAA;
+        msg.foo.b = 0xBB;
 
-    SECTION("flush called once"){
-        flush_calls = 0;
-        REQUIRE(msgSender_send(&sender, &msg) == EZP_OK);
-        REQUIRE(flush_calls == 1);
+        SECTION("flush called once"){
+            flush_calls = 0;
+            REQUIRE(msgSender_send(&sender, &msg) == EZP_OK);
+            REQUIRE(flush_calls == 1);
 
-    }
+        }
 
         SECTION("send then read works"){
             ezp_msg_t rmsg;
@@ -93,9 +93,22 @@ TEST_CASE("reader sender loopback"){
             REQUIRE(rmsg.foo.a == 0xAA);
             REQUIRE(rmsg.foo.b == 0xBB);
 
-            SECTION("pop called once") {
+            SECTION("pop called after msg reported good") {
+                REQUIRE(pops.size() == 0);
+                REQUIRE(msgReader_on_msg_valid(&reader, &msg) == EZP_OK);
                 REQUIRE(pops.size() == 1);
+                REQUIRE(pops[0] > 1);
             }
+
+            SECTION("pop called after msg reported bad") {
+                REQUIRE(pops.size() == 0);
+                REQUIRE(msgReader_on_msg_invalid(&reader) == EZP_OK);
+                REQUIRE(pops.size() == 1);
+                REQUIRE(pops[0] == 1);
+            }
+
+            REQUIRE(msgReader_on_msg_valid(&reader, &msg) == EZP_OK);
+
 
 
             SECTION("send then read works multiple times") {
@@ -106,6 +119,7 @@ TEST_CASE("reader sender loopback"){
 
                 msgSender_send(&sender, &msg);
                 REQUIRE(msgReader_read_msg(&reader, &rmsg) == EZP_OK);
+                REQUIRE(msgReader_on_msg_valid(&reader, &rmsg) == EZP_OK);
 
                 REQUIRE(rmsg.typeID == ezp_msgID_bar);
                 REQUIRE(rmsg.bar.c == 0xCC);
@@ -120,13 +134,14 @@ TEST_CASE("reader sender loopback"){
 
         SECTION("send then read works with garbage sent first") {
 
-            platform.write_byte(1);
-            platform.write_byte(2);
+            platform.write_byte(platform.usr_data, 1);
+            platform.write_byte(platform.usr_data, 2);
 
 
             ezp_msg_t rmsg;
             msgSender_send(&sender, &msg);
             REQUIRE(msgReader_read_msg(&reader, &rmsg) == EZP_OK);
+            REQUIRE(msgReader_on_msg_valid(&reader, &rmsg) == EZP_OK);
             REQUIRE(rmsg.typeID == ezp_msgID_foo);
             REQUIRE(rmsg.foo.a == 0xAA);
             REQUIRE(rmsg.foo.b == 0xBB);
@@ -138,13 +153,14 @@ TEST_CASE("reader sender loopback"){
 
         SECTION("send then read works with out of range garbage sent first") {
 
-            platform.write_byte(1);
-            platform.write_byte(234);
+            platform.write_byte(platform.usr_data, 1);
+            platform.write_byte(platform.usr_data, 234);
 
 
             ezp_msg_t rmsg;
             msgSender_send(&sender, &msg);
             REQUIRE(msgReader_read_msg(&reader, &rmsg) == EZP_OK);
+            REQUIRE(msgReader_on_msg_valid(&reader, &rmsg) == EZP_OK);
             REQUIRE(rmsg.typeID == ezp_msgID_foo);
             REQUIRE(rmsg.foo.a == 0xAA);
             REQUIRE(rmsg.foo.b == 0xBB);
@@ -164,6 +180,7 @@ TEST_CASE("reader sender loopback"){
         REQUIRE(msgSender_send(&sender, &msg) == EZP_OK);
         ezp_msg_t rmsg;
         REQUIRE(msgReader_read_msg(&reader, &rmsg) == EZP_OK);
+        REQUIRE(msgReader_on_msg_valid(&reader, &rmsg) == EZP_OK);
 
         REQUIRE(rmsg.typeID == ezp_msgID_ack);
 

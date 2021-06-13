@@ -30,8 +30,9 @@ SCENARIO("csum"){
 
             THEN("get exprected result"){
                 csumCalc_getCsum(&csum, &simple, &extra);
-                REQUIRE(simple == 0xF0);
-                REQUIRE(extra == 0xC8);
+
+                REQUIRE((int)simple == 211);
+                REQUIRE((int)extra == 109);
 
             }
         }

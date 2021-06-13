@@ -8,8 +8,8 @@
 # TEST_NAME := ezp_msg_buffer_test
 # MSG_TABLE := foobarpingpong.h
 
-CC := gcc
-CXX := g++
+CC := gcc-11
+CXX := g++-11
 
 BUILD_ROOT := ./build
 BUILD_DIR := $(BUILD_ROOT)/$(TEST_NAME)
@@ -19,9 +19,9 @@ TEST_DIR := ./tests/src
 
 TEST_EXEC := $(BUILD_DIR)/$(TEST_NAME)
 
-CFLAGS := -Wall -g -fdiagnostics-color=always
-CXXFLAGS := -Wall -g -fdiagnostics-color=always
-CPPFLAGS := '-DEZP_MSG_TABLE="$(MSG_TABLE)"' -DEZP_DEBUG
+CFLAGS := -Wall -g -fdiagnostics-color=always -O0
+CXXFLAGS := -Wall -g -fdiagnostics-color=always -O0
+CPPFLAGS := '-DEZP_MSG_TABLE="$(MSG_TABLE)"' -DEZP_DEBUG -DEZP_USR_LOG_FUNC -DEZP_USR_ERROR_FUNC
 
 # OMIT := ./test/fakes/ezp_byte_buffer.c
 # OMIT := $(shell echo $(OMIT)| xargs -n 1 basename)
@@ -30,12 +30,14 @@ CPPFLAGS := '-DEZP_MSG_TABLE="$(MSG_TABLE)"' -DEZP_DEBUG
 # SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c | grep -v -f <(echo $(OMIT)))
 SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c )
 
+
 SRCS := $(shell ./prune.sh '$(SRCS)' '$(EXTRA_SRCS)')
 SRCS += $(EXTRA_SRCS:%=./tests/%)
 
 
 TEST_SRCS := $(TEST_DIR)/$(TEST_NAME).cpp
-CATCH_SRC := $(TEST_DIR)/catch_main.cpp
+# MAIN_SRC := $(TEST_DIR)/catch_main.cpp
+MAIN_SRC := $(MAIN:%=$(TEST_DIR)/%)
 
 
 
@@ -43,13 +45,13 @@ CATCH_SRC := $(TEST_DIR)/catch_main.cpp
 # As an example, hello.cpp turns into ./build/hello.cpp.o
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 TEST_OBJS := $(TEST_SRCS:%=$(BUILD_DIR)/%.o)
-CATCH_OBJ := $(CATCH_SRC:%=$(BUILD_ROOT)/%.o)
+MAIN_OBJ := $(MAIN_SRC:%=$(BUILD_ROOT)/%.o)
 
 # String substitution (suffix version without %).
 # As an example, ./build/hello.cpp.o turns into ./build/hello.cpp.d
 DEPS := $(OBJS:.o=.d)
 DEPS += $(TEST_OBJS:.o=.d)
-DEPS += $(CATCH_OBJ:.o=.d)
+DEPS += $(MAIN_OBJ:.o=.d)
 
 
 # Every folder in ./src will need to be passed to GCC so that it can find header files
@@ -67,27 +69,29 @@ CPPFLAGS += $(INC_FLAGS) -MMD -MP
 
 
 
-$(TEST_EXEC): $(TEST_OBJS) $(OBJS) $(CATCH_OBJ)
-	@$(CXX) $(TEST_OBJS) $(OBJS) $(CATCH_OBJ) -o $@ $(LDFLAGS)
+$(TEST_EXEC): $(TEST_OBJS) $(OBJS) $(MAIN_OBJ)
+	$(CXX) $(TEST_OBJS) $(OBJS) $(MAIN_OBJ) -o $@ $(LDFLAGS)
 
 
 # Build step for C source
 $(BUILD_DIR)/%.c.o: %.c
 	@mkdir -p $(dir $@)
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CPPFLAGS) $(CFLAGS) -E $< -o $@.i
+
 
 # Build step for C++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
-	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
-	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-$(CATCH_OBJ): $(CATCH_SRC)
+$(MAIN_OBJ): $(MAIN_SRC)
 	@mkdir -p $(dir $@)
-	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 
 

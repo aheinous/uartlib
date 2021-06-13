@@ -14,10 +14,12 @@ typedef struct{
 
 
 EZP_RESULT msgReader_init(msg_reader_t *self, uint8_t *buff, uint8_t len);
-
 EZP_RESULT msgReader_push_byte(msg_reader_t *, uint8_t );
-
 EZP_RESULT msgReader_read_msg(msg_reader_t*, ezp_msg_t*);
+EZP_RESULT msgReader_on_msg_valid(msg_reader_t *, ezp_msg_t *);
+EZP_RESULT msgReader_on_msg_invalid(msg_reader_t *);
+
+
 
 #ifdef __cplusplus
 }

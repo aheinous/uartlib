@@ -1,7 +1,8 @@
 #include "ezp_byte_buffer.h"
 
+
 #define INCED(index) (((index)+1) & (self->m_capacity - 1))
-#define WRAPPED(index) ((index) & (self->m_capacity- 1))
+#define WRAPPED(index) (((uint8_t)(index)) & (self->m_capacity- 1))
 
 
 EZP_RESULT byteBuff_init(byteBuff_t *self, uint8_t *buff, uint8_t len) {
@@ -30,9 +31,6 @@ uint8_t byteBuff_size(byteBuff_t *self){
 }
 
 EZP_RESULT byteBuff_push(byteBuff_t *self, uint8_t byte){
-	// EZP_VLOG(">> %s\n", __func__);
-	// EZP_ASSERT(msg != NULL); // ??
-
 	if(byteBuff_isFull(self)){
 		return EZP_EAGAIN;
 	}
@@ -42,13 +40,11 @@ EZP_RESULT byteBuff_push(byteBuff_t *self, uint8_t byte){
 }
 
 EZP_RESULT byteBuff_peek(byteBuff_t *self,  uint8_t idx, uint8_t *pbyte){
-	// EZP_VLOG(">> %s\n", __func__);
-	// EZP_ASSERT(pbyte != NULL);
-
 	if(idx >= byteBuff_size(self)){
 		return EZP_EAGAIN;
 	}
-	*pbyte = (self->m_data[ WRAPPED(self->m_readIndex + idx) ]);
+	uint8_t read_idx = WRAPPED(self->m_readIndex + idx);
+	*pbyte = (self->m_data[ read_idx ]);
 	return EZP_OK;
 }
 

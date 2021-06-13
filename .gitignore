@@ -1,4 +1,6 @@
 .vscode
+.cproject
+.project
 build
 unittests
 .directory
